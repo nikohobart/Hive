@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+// Namespace
+package actors;
+
+
+// Requests
+message RegisterRequest {
+    // ID of the actor
+    bytes actor_id = 1;
+
+    // ID of the actor's owner
+    bytes owner_id = 2;    
+}
+
+message UpdateRequest {
+    // ID of the actor
+    bytes actor_id = 1;
+
+    // ID of the actor's owner
+    bytes owner_id = 2;
+}
+
+// Responses
+message Empty {
+
+}
+
+// Service responsible for actors
+service ActorService {
+    // Registers an actor with the scheduler
+    rpc RegisterActor (RegisterRequest) returns (Empty);
+
+    // Updates an actor on a server
+    rpc UpdateActor (UpdateRequest) returns (Empty);
+}

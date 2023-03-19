@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+// Namespace
+package tasks;
+
+// Requests
+message ExecuteRequest {
+    // ID of the task
+    bytes task_id = 1;
+
+    // Serialized function to be executed
+    bytes function = 2;
+
+    // List of function arguments
+    bytes args = 3;
+}
+
+message CancelRequest {
+    // ID of the task
+    bytes task_id = 1;
+}
+
+// Responses
+message ExecuteReply {
+    // ID of the task
+    bytes task_id = 1;
+
+    // Return value of task
+    bytes result = 2;
+}
+
+message CancelReply {
+    // ID of the task
+    bytes task_id = 1;
+}
+
+// Service responsible for tasks
+service TaskService {
+    // Executes a task
+    rpc ExecuteTask (ExecuteRequest) returns (ExecuteReply);
+
+    // Cancels running task
+    rpc CancelTask (CancelRequest) returns (CancelReply);
+}
