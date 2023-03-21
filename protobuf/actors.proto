@@ -3,7 +3,6 @@ syntax = "proto3";
 // Namespace
 package actors;
 
-
 // Requests
 message RegisterRequest {
     // ID of the actor
@@ -11,6 +10,9 @@ message RegisterRequest {
 
     // ID of the actor's owner
     bytes owner_id = 2;    
+
+    // Object to be registered
+    bytes obj = 3;
 }
 
 message UpdateRequest {
@@ -19,18 +21,25 @@ message UpdateRequest {
 
     // ID of the actor's owner
     bytes owner_id = 2;
+
+    // Object method to run
+    bytes function = 3;
+
+    // Object method arguments
+    bytes args = 4;
 }
 
 // Responses
-message Empty {
-
+message ActorState {
+    // Current object
+    bytes obj = 1;
 }
 
 // Service responsible for actors
 service ActorService {
     // Registers an actor with the scheduler
-    rpc RegisterActor (RegisterRequest) returns (Empty);
+    rpc RegisterActor (RegisterRequest) returns (ActorState);
 
     // Updates an actor on a server
-    rpc UpdateActor (UpdateRequest) returns (Empty);
+    rpc UpdateActor (UpdateRequest) returns (ActorState);
 }

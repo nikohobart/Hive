@@ -3,8 +3,7 @@
 import grpc
 
 #import actors_pb2 as actors__pb2
-from src.proto import actors_pb2
-
+from src.proto import actors_pb2 as actors__pb2
 
 class ActorServiceStub(object):
     """Service responsible for actors
@@ -19,12 +18,12 @@ class ActorServiceStub(object):
         self.RegisterActor = channel.unary_unary(
                 '/actors.ActorService/RegisterActor',
                 request_serializer=actors__pb2.RegisterRequest.SerializeToString,
-                response_deserializer=actors__pb2.Empty.FromString,
+                response_deserializer=actors__pb2.ActorState.FromString,
                 )
         self.UpdateActor = channel.unary_unary(
                 '/actors.ActorService/UpdateActor',
                 request_serializer=actors__pb2.UpdateRequest.SerializeToString,
-                response_deserializer=actors__pb2.Empty.FromString,
+                response_deserializer=actors__pb2.ActorState.FromString,
                 )
 
 
@@ -52,12 +51,12 @@ def add_ActorServiceServicer_to_server(servicer, server):
             'RegisterActor': grpc.unary_unary_rpc_method_handler(
                     servicer.RegisterActor,
                     request_deserializer=actors__pb2.RegisterRequest.FromString,
-                    response_serializer=actors__pb2.Empty.SerializeToString,
+                    response_serializer=actors__pb2.ActorState.SerializeToString,
             ),
             'UpdateActor': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateActor,
                     request_deserializer=actors__pb2.UpdateRequest.FromString,
-                    response_serializer=actors__pb2.Empty.SerializeToString,
+                    response_serializer=actors__pb2.ActorState.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -83,7 +82,7 @@ class ActorService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/actors.ActorService/RegisterActor',
             actors__pb2.RegisterRequest.SerializeToString,
-            actors__pb2.Empty.FromString,
+            actors__pb2.ActorState.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -100,6 +99,6 @@ class ActorService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/actors.ActorService/UpdateActor',
             actors__pb2.UpdateRequest.SerializeToString,
-            actors__pb2.Empty.FromString,
+            actors__pb2.ActorState.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

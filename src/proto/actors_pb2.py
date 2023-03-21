@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x61\x63tors.proto\x12\x06\x61\x63tors\"5\n\x0fRegisterRequest\x12\x10\n\x08\x61\x63tor_id\x18\x01 \x01(\x0c\x12\x10\n\x08owner_id\x18\x02 \x01(\x0c\"3\n\rUpdateRequest\x12\x10\n\x08\x61\x63tor_id\x18\x01 \x01(\x0c\x12\x10\n\x08owner_id\x18\x02 \x01(\x0c\"\x07\n\x05\x45mpty2|\n\x0c\x41\x63torService\x12\x37\n\rRegisterActor\x12\x17.actors.RegisterRequest\x1a\r.actors.Empty\x12\x33\n\x0bUpdateActor\x12\x15.actors.UpdateRequest\x1a\r.actors.Emptyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x61\x63tors.proto\x12\x06\x61\x63tors\"B\n\x0fRegisterRequest\x12\x10\n\x08\x61\x63tor_id\x18\x01 \x01(\x0c\x12\x10\n\x08owner_id\x18\x02 \x01(\x0c\x12\x0b\n\x03obj\x18\x03 \x01(\x0c\"S\n\rUpdateRequest\x12\x10\n\x08\x61\x63tor_id\x18\x01 \x01(\x0c\x12\x10\n\x08owner_id\x18\x02 \x01(\x0c\x12\x10\n\x08\x66unction\x18\x03 \x01(\x0c\x12\x0c\n\x04\x61rgs\x18\x04 \x01(\x0c\"\x19\n\nActorState\x12\x0b\n\x03obj\x18\x01 \x01(\x0c\x32\x86\x01\n\x0c\x41\x63torService\x12<\n\rRegisterActor\x12\x17.actors.RegisterRequest\x1a\x12.actors.ActorState\x12\x38\n\x0bUpdateActor\x12\x15.actors.UpdateRequest\x1a\x12.actors.ActorStateb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'actors_pb2', globals())
@@ -21,11 +21,11 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _REGISTERREQUEST._serialized_start=24
-  _REGISTERREQUEST._serialized_end=77
-  _UPDATEREQUEST._serialized_start=79
-  _UPDATEREQUEST._serialized_end=130
-  _EMPTY._serialized_start=132
-  _EMPTY._serialized_end=139
-  _ACTORSERVICE._serialized_start=141
-  _ACTORSERVICE._serialized_end=265
+  _REGISTERREQUEST._serialized_end=90
+  _UPDATEREQUEST._serialized_start=92
+  _UPDATEREQUEST._serialized_end=175
+  _ACTORSTATE._serialized_start=177
+  _ACTORSTATE._serialized_end=202
+  _ACTORSERVICE._serialized_start=205
+  _ACTORSERVICE._serialized_end=339
 # @@protoc_insertion_point(module_scope)
