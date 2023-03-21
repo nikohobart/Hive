@@ -31,6 +31,8 @@ Hive uses `gRPC` and `cloudpickle` for rpc calls and serialization/deserializati
 
 The repo follows the general template outlined at this link: [Example Repo](https://github.com/chryb/python-grpc-server-template)
 
+Run `client.py` or `server.py` in the `src` directory to start program.
+
 ## Troubleshooting
 The following are same issues you may run into, if, like me, you haven't done a project in Python for 3 years!
 * If you're using VS Code and virtualenv to manage your Python environment, you may have to follow the instructions [here](https://stackoverflow.com/questions/56199111/visual-studio-code-cmd-error-cannot-be-loaded-because-running-scripts-is-disabl/67420296#67420296) to enable the execution of venv activate.
