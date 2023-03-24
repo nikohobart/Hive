@@ -1,6 +1,16 @@
 # Hive
 A distributed computing framework loosely based on Ray and Dask.
 
+## Structure
+
+|Package|Description|
+|:--:|:--|
+|`grpc`|GRPC Utils & Server|
+|`models`|Model Definitions|
+|`proto`|Generated Protobuf files|
+|`services`|Implementation of the Protobuf API|
+|`store`|Global Service Store|
+
 ## Set Up
 We recommend using a virtual environment to manage dependencies.
 
@@ -30,6 +40,8 @@ python -m grpc_tools.protoc -I ./protobuf --python_out=./src/proto --grpc_python
 Hive uses `gRPC` and `cloudpickle` for rpc calls and serialization/deserialization, respectively.
 
 The repo follows the general template outlined at this link: [Example Repo](https://github.com/chryb/python-grpc-server-template)
+
+See [here](https://grpc.io/docs/languages/python/quickstart/) for a walkthrough on how to get started with gRPC.
 
 Run `client.py` or `server.py` in the `src` directory to start program.
 
