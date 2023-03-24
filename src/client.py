@@ -37,6 +37,9 @@ class Client(object):
         Args:
             f (callable): function to be executed
             args (list): arguments for function
+            
+        Returns:
+        any: the value retrieved from the remote call
         """
         print('Serializing function ({}) and arguments ({})'.format(f.__name__, args))
         bin_func = cloudpickle.dumps(f)
@@ -50,6 +53,7 @@ class Client(object):
         
         result = cloudpickle.loads(response.result)
         print("Response received:", result)
+        return result
         
     def set_actor(self, obj: object):
         """Sets an actor on client's host
