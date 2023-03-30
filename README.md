@@ -49,12 +49,14 @@ You can also run servers locally with Docker. Follow the steps outlined below to
 
 > to build the image
 
-```docker build --tag hive-server
+```shell
+docker build --tag hive-server
 ```
 
 > to build and run a container with a hive server running on port
 
-```docker run -it -p {port}:{port} -e PYTHONPATH=. hive-server python3 ./src/server.py -p {port}
+```shell
+docker run -it -p {port}:{port} -e PYTHONPATH=. hive-server python3 ./src/server.py -p {port}
 ```
 
 ## Troubleshooting
