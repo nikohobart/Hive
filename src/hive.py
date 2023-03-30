@@ -20,7 +20,7 @@ class RemoteFunction:
         self.server = server
         self.server_port = server_port
         
-        self.client = Client()
+        self.client = Client(self.server, self.server_port)
 
     def remote(self, *args, **kwargs):
         res = self.client.get_execute_task(self.fn, args)

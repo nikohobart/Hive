@@ -1,3 +1,4 @@
+import argparse
 from concurrent import futures
 import logging
 import signal
@@ -16,7 +17,7 @@ class Server(object):
     def instance(self):
         return self.__server
     
-    def __init__(self, address='[::]', port=50051, max_workers=10):
+    def __init__(self, address='0.0.0.0', port=8080, max_workers=10):
         self.__address = address
         self.__port = port
         self.__server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
@@ -50,7 +51,11 @@ def signalHandler(signal, frame):
 if __name__ == '__main__':
     logging.basicConfig()
     
-    server = Server()
+    parser = argparse.ArgumentParser(description='Runs a Hive server')
+    parser.add_argument('-p', '--port', type=int, help='Port to run on', required=True)
+    args = parser.parse_args()
+    
+    server = Server(port=args.port)
     signal.signal(signal.SIGINT, signalHandler)
     
     add_services(server.instance)

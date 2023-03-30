@@ -5,7 +5,7 @@ A distributed computing framework loosely based on Ray and Dask.
 
 |Package|Description|
 |:--:|:--|
-|`grpc`|GRPC Utils & Server|
+|`util`|GRPC Utils|
 |`models`|Model Definitions|
 |`proto`|Generated Protobuf files|
 |`services`|Implementation of the Protobuf API|
@@ -43,7 +43,19 @@ The repo follows the general template outlined at this link: [Example Repo](http
 
 See [here](https://grpc.io/docs/languages/python/quickstart/) for a walkthrough on how to get started with gRPC.
 
-Run `client.py` or `server.py` in the `src` directory to start program.
+Run `client.py` or `server.py` in the `src` directory to start program. Alternatively, if you want to experiment with the Hive api, use `example.py`.
+
+You can also run servers locally with Docker. Follow the steps outlined below to do so:
+
+> to build the image
+
+```docker build --tag hive-server
+```
+
+> to build and run a container with a hive server running on port
+
+```docker run -it -p {port}:{port} -e PYTHONPATH=. hive-server python3 ./src/server.py -p {port}
+```
 
 ## Troubleshooting
 The following are same issues you may run into, if, like me, you haven't done a project in Python for 3 years!
