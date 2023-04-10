@@ -20,6 +20,15 @@ message CancelRequest {
     bytes task_id = 1;
 }
 
+message ScheduleTaskRequest {
+    // ID of the task
+    bytes task_id = 1;
+}
+
+message GetResourceLoadRequest {
+}
+
+
 // Responses
 message ExecuteReply {
     // ID of the task
@@ -34,11 +43,27 @@ message CancelReply {
     bytes task_id = 1;
 }
 
+message ScheduleTaskReply {
+    // ID of the task
+    bytes task_id = 1;
+}
+
+message GetResourceLoadResponse {
+    float cpu_load;
+    int64 memory_used;
+}
+
 // Service responsible for tasks
 service TaskService {
     // Executes a task
     rpc ExecuteTask (ExecuteRequest) returns (ExecuteReply);
 
+    // Add a task to scheduler
+    rpc AddTaskToScheduler (ScheduleTaskRequest) returns (ScheduleTaskReply);
+    
     // Cancels running task
     rpc CancelTask (CancelRequest) returns (CancelReply);
+
+    // Get Resource Load From Server
+    rpc GetResourceLoad (GetResourceLoadRequest) returns (GetResourceLoadResponse);
 }
