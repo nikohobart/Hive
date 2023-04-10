@@ -43,6 +43,9 @@ class Client(object):
         bin_args = cloudpickle.dumps(args)
         
         print("Sending function to worker ({})".format(self.host))
+
+        # Add task to scheduling queue
+        
         response = self.tasks_stub.ExecuteTask(tasks_pb2.ExecuteRequest(
             task_id=int.to_bytes(self.task_iter), function=bin_func, args=bin_args
         ))

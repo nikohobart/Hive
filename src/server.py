@@ -35,7 +35,6 @@ class Server(object):
         print("Stopping server gracefully")
         self.__server.stop(3)        
 
-
 def add_services(server):
     actors_pb2_grpc.add_ActorServiceServicer_to_server(ActorService(), server)
     tasks_pb2_grpc.add_TaskServiceServicer_to_server(TaskService(), server)
