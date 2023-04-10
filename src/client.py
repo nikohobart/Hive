@@ -1,5 +1,6 @@
 import cloudpickle
 import logging
+from scheduler import SchedulingQueue
 
 import grpc
 from proto import actors_pb2
@@ -30,6 +31,8 @@ class Client(object):
         # self task id generator 
         #TODO: this should probably be moved to a different part of the architecture
         self.task_iter = 0
+        self.scheduler = SchedulingQueue()
+
         
     def get_execute_task(self, f: callable, args: list):
         """Executes task on client's host
@@ -45,10 +48,11 @@ class Client(object):
         print("Sending function to worker ({})".format(self.host))
 
         # Add task to scheduling queue
-        
-        response = self.tasks_stub.ExecuteTask(tasks_pb2.ExecuteRequest(
-            task_id=int.to_bytes(self.task_iter), function=bin_func, args=bin_args
-        ))
+        # TODO: how to get server addresses?
+        response = self.scheduler.add_task(self.task_iter, bin_func, bin_args, self.task_iter, self.tasks_stub, tasks_pb2, serverAddresses)
+        # response = self.tasks_stub.ExecuteTask(tasks_pb2.ExecuteRequest(
+        #     task_id=int.to_bytes(self.task_iter), function=bin_func, args=bin_args
+        # ))
         self.task_iter += 1
         
         result = cloudpickle.loads(response.result)

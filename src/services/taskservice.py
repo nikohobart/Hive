@@ -23,14 +23,16 @@ class TaskService(tasks_pb2_grpc.TaskServiceServicer):
         # TODO:
         localObjectStore = LocalObjectStore()
         if localObjectStore.hasAllObjects(request.object_ids, depickled_args):
-            
+            # excute as normal and send back new mapping to master
+            pass
         else:
             storedObj, missingObj = localObjectStore.getFromLocalObjStore(request.object_ids)
-            serverAddr = master_has_all_objects(request.object_ids, depickled_args):
+            serverAddr = master_has_all_objects(request.object_ids, depickled_args)
+            if serverAddr != None:
                 send_request_to_worker(request, depickled_args)
                 pass   
             else:
-                # excute as normal
+                # excute as normal but update local object store, return new mapping to master
                 pass
                 
         
@@ -42,8 +44,8 @@ class TaskService(tasks_pb2_grpc.TaskServiceServicer):
         return tasks_pb2.ExecuteReply(task_id=request.task_id, result=cloudpickle.dumps(result))
     
     # worker send grpc to master to check if master has all objects, return 
-    def MasterHasObjectsMapping():
-        pass
+    # def MasterHasObjectsMapping():
+    #     pass
     
     # send grpc to worker to get resource load  
     def GetResourceLoad(self, request, context):

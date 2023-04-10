@@ -1,13 +1,12 @@
 import heapq
 
 class Task:
-    def init(self, task_id, task_func, task_func_args):
-        self.task_id = task_id
+    def init(self, task_func, task_func_args):
         self.task_func = task_func
         self.task_func_args = task_func_args
         self.state = TaskState.PLACEABLE
 
-class TaskState(Enum):
+class TaskState():
     PLACEABLE = 1
     WAITING = 2
     READY = 3
@@ -24,9 +23,10 @@ class TaskQueue:
     def init(self):
         self.task_list = []
         self.task_map = {}
+        self.state = TaskState.PLACEABLE
     # self.current_resource_load = ResourceSet()
 
-    def append_task(self, task_id, task):
+    def append_task(self, task, task_id):
         if task_id in self.task_map:
             return False
         self.task_list.append(task)
@@ -45,6 +45,10 @@ class TaskQueue:
             removed_tasks.append(task)
         return True
 
+    def pop_task(self):
+        task = self.task_list.pop(0)
+        return task
+    
     def has_task(self, task_id):
         return task_id in self.task_map
 
@@ -56,31 +60,12 @@ class TaskQueue:
             raise KeyError(f"Task with ID {task_id} not found.")
         return self.task_map[task_id]
 
-    def get_current_resource_load(self):
-        return self.current_resource_load
-
-
 class SchedulingQueue:
     def init(self):
-        self.ready_queue = ReadyQueue()
-        self.task_queues = {
-        task_state: (self.ready_queue if task_state == TaskState.READY else TaskQueue())
-        for task_state in [
-            TaskState.PLACEABLE,
-            TaskState.WAITING,
-            TaskState.READY,
-            TaskState.RUNNING,
-            TaskState.INFEASIBLE,
-            TaskState.WAITING_FOR_ACTOR_CREATION,
-            TaskState.SWAP,
-            ]}
-        self.blocked_task_ids = set()
-        self.driver_task_ids = set()
+        self.task_queues = TaskQueue()
         self.server_load_priority_queue = []
-
-
-    def get_resource_load(self):
-        return self.ready_queue.get_resource_load()
+        # self.blocked_task_ids = set()
+        # self.driver_task_ids = set()
 
     def has_task(self, task_id):
         return any(queue.has_task(task_id) for queue in self.task_queues.values())
@@ -163,20 +148,32 @@ class SchedulingQueue:
             #     print(f"{server_address}: CPU Load: {cpu_load}%, Memory Used: {memory_used} bytes")
 
     # send task to a specific server
-    def sendTaskToServer(self, request, context, client_stub, sever_address):
-        client_stub.SendTask(request, context, sever_address)
+    # TODO How to send by a specifc server?
+    def sendTaskToServer(self, bin_func, bin_args, client_stub, sever_address, taskiter, tasks_pb2):
+        response = client_stub.ExecuteTask(tasks_pb2.ExecuteRequest(
+                task_id=int.to_bytes(taskiter), function=bin_func, args=bin_args
+            ))
+        return response
         
     # send task to the server with the lowest load
-    def PickServerAndSendTask(self, request, context, client_stub, server_addresses):
+    def PickServerAndSendTask(self, bin_func, bin_args, client_stub, server_addresses, tasks_pb2, taskiter):
         # update the queue
-        self.updateServerQueue(client_stub, server_addresses)
+        self.UpdateServerQueue(client_stub, server_addresses)
         
         # send the task to the server with the lowest load
-        self.sendTaskToServer(request, context, client_stub, self.server_load_priority_queue[0][2])
-  
-
+        response = self.sendTaskToServer(bin_func, bin_args, client_stub,self.server_load_priority_queue[0][2], taskiter, tasks_pb2)
+        
+        return response
     
+    # Add a task to the scheduling queue
+    def add_task(self, task_func, task_func_args, taskiter, client_stub, tasks_pb2, server_addresses):
+        task = Task(task_func, task_func_args)
+        self.task_queues.append_task(taskiter, task, taskiter)
+        task = self.task_queues.pop_task()
+        
+        response = self.PickServerAndSendTask(task.task_func, task.task_func_args, client_stub, server_addresses, tasks_pb2, taskiter)
     
+        return response
     
     
     
