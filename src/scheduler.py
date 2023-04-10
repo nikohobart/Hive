@@ -24,7 +24,6 @@ class TaskQueue:
         self.task_list = []
         self.task_map = {}
         self.state = TaskState.PLACEABLE
-    # self.current_resource_load = ResourceSet()
 
     def append_task(self, task, task_id):
         if task_id in self.task_map:
