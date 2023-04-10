@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+// Namespace
+package hive;
+
+// Execute
+message TaskRequest {
+    // Task ID
+    bytes task_id = 1;
+
+    // Function
+    bytes function = 2;
+
+    // Args
+    bytes args = 3;
+}
+
+message TaskReply {
+    // Task ID
+    bytes task_id = 1;
+
+    // Return value
+    bytes result = 2;
+}
+
+// GetObject
+message ObjectRequest {
+    // Object IDs
+    bytes object_ids = 1;
+}
+
+message ObjectReply {
+    // Objects
+    bytes objects = 1;
+}
+
+// GetLoad
+message LoadRequest {
+}
+
+message LoadReply {
+    // CPU Load
+    bytes cpu_load = 1;
+
+    // Memory Utilization
+    bytes memory_util = 2;
+}
+
+// Hive Worker
+service WorkerService {
+    rpc Execute (TaskRequest) returns (TaskReply);
+    rpc GetObject (ObjectRequest) returns (ObjectReply);
+    rpc GetLoad (LoadRequest) returns (LoadReply);
+}

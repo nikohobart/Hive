@@ -1,27 +1,26 @@
-import cloudpickle
 import psutil
-from src.scheduler import SchedulingQueue
-from src.serverObjStore import LocalObjectStore
 
-from src.proto import tasks_pb2
-from src.proto import tasks_pb2_grpc
+from src.proto import worker_pb2
+from src.proto import worker_pb2_grpc
+from src.worker import object_store
+from src.util import serialization
 
 
-class TaskService(tasks_pb2_grpc.TaskServiceServicer):
-    # initialize scheduler
+class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
     def init(self):
-        self.scheduling_queue = SchedulingQueue()
+        self._object_store = object_store.ObjectStore()
 
     def ExecuteTask(self, request, context):
         print("ExecuteTask RPC Called")
 
-        depickled_func = cloudpickle.loads(request.function)
-        depickled_args = cloudpickle.loads(request.args)
+        depickled_func = serialization.deserialize(request.function)
+        depickled_args = serialization.deserialize(request.args)
+
         print("Received task ({}) with args ({})".format(depickled_func.__name__, depickled_args))
         
-        # if need local has all objects
-        # TODO:
-        localObjectStore = LocalObjectStore()
+
+
+
         if localObjectStore.hasAllObjects(request.object_ids, depickled_args):
             # excute as normal and send back new mapping to master
             pass
@@ -41,7 +40,7 @@ class TaskService(tasks_pb2_grpc.TaskServiceServicer):
         
         # return result to client
         print("Returning:", result)
-        return tasks_pb2.ExecuteReply(task_id=request.task_id, result=cloudpickle.dumps(result))
+        return hive_pb2.ExecuteReply(task_id=request.task_id, result=cloudpickle.dumps(result))
     
     # worker send grpc to master to check if master has all objects, return 
     # def MasterHasObjectsMapping():
@@ -53,7 +52,7 @@ class TaskService(tasks_pb2_grpc.TaskServiceServicer):
         memory_info = psutil.virtual_memory()
         memory_used = memory_info.used
 
-        return tasks_pb2.GetResourceLoadResponse(cpu_load=cpu_load, memory_used=memory_used)
+        return hive_pb2.GetResourceLoadResponse(cpu_load=cpu_load, memory_used=memory_used)
 
     def CancelTask(self, request, context):
         # TODO:
