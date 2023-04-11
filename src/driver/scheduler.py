@@ -1,11 +1,20 @@
 import heapq
+import uuid
 
-class Task:
-    def __init__(self, task_func, task_func_args):
-        self.task_func = task_func
-        self.task_func_args = task_func_args
-        self.state = TaskState.PLACEABLE
+import grpc
+from src.proto import driver_pb2
+from src.proto import driver_pb2_grpc
+from src.proto import worker_pb2
+from src.proto import worker_pb2_grpc
+from util.task import Task
 
+# class Task:
+#     def __init__(self, task_func, task_func_args):
+#         self.task_func = task_func
+#         self.task_func_args = task_func_args
+#         self.state = TaskState.PLACEABLE
+#         self.task_id = uuid.UUID()
+        
 class TaskState():
     PLACEABLE = 1
     WAITING = 2
@@ -20,7 +29,7 @@ class TaskState():
     DEAD = 11
 
 class TaskQueue:
-    def init(self):
+    def __init__(self):
         self.task_list = []
         self.task_map = {}
         self.state = TaskState.PLACEABLE
@@ -31,14 +40,14 @@ class TaskQueue:
             return False
         self.task_list.append(task)
         self.task_map[task_id] = self.task_list[-1]
-        self.current_resource_load += task.resources
+        # self.current_resource_load += task.resources
         return True
 
     def remove_task(self, task_id, removed_tasks=None):
         if task_id not in self.task_map:
             return False
         task = self.task_map[task_id]
-        self.current_resource_load -= task.resources
+        # self.current_resource_load -= task.resources
         self.task_list.remove(task)
         del self.task_map[task_id]
         if removed_tasks is not None:
@@ -61,7 +70,7 @@ class TaskQueue:
         return self.task_map[task_id]
 
 class SchedulingQueue:
-    def init(self):
+    def __init__(self):
         self.task_queues = TaskQueue()
         self.server_load_priority_queue = []
         # self.blocked_task_ids = set()
@@ -131,10 +140,11 @@ class SchedulingQueue:
         self.driver_task_ids.discard(task_id)
 
     # update the server load priority queue by getting the resource load from each server
-    def UpdateServerQueue(self, client_stub, server_addresses):
+    def UpdateServerQueue(self, server_addresses, tasks_stub):
 
         for server_address in server_addresses:
-            resourceLoadResponse = self.tasks_stu.GetResourceLoad(tasks_pb2.GetResourceLoadRequest())
+            
+            resourceLoadResponse = tasks_stub.GetLoad(worker_pb2.LoadRequest())
             print("CPU Load: {}%".format(resourceLoadResponse.cpu_load))
             print("Memory Used: {}%".format(resourceLoadResponse.memory_used))
             
@@ -143,37 +153,38 @@ class SchedulingQueue:
             heapq.heappush(self.server_load_priority_queue, server_load_tuple)
 
             # print("Sorted server loads:")
-            # while server_load_priority_queue:
+            # while self.server_load_priority_queue:
             #     cpu_load, memory_used, server_address = heapq.heappop(server_load_priority_queue)
             #     print(f"{server_address}: CPU Load: {cpu_load}%, Memory Used: {memory_used} bytes")
 
     # send task to a specific server
     # TODO How to send by a specifc server?
-    def sendTaskToServer(self, bin_func, bin_args, client_stub, sever_address, taskiter, tasks_pb2):
-        response = client_stub.ExecuteTask(tasks_pb2.ExecuteRequest(
+    def sendTaskToServer(self, bin_func, bin_args, tasks_stub, serverAddr, taskiter):
+        response = tasks_stub.ExecuteTask(worker_pb2.ExecuteRequest(
                 task_id=int.to_bytes(taskiter), function=bin_func, args=bin_args
             ))
         return response
         
     # send task to the server with the lowest load
-    def PickServerAndSendTask(self, bin_func, bin_args, client_stub, server_addresses, tasks_pb2, taskiter):
+    def PickServerAndTask(self, bin_func, bin_args, kwargs, tasks_stub, server_addresses):
         # update the queue
-        self.UpdateServerQueue(client_stub, server_addresses)
-        
-        # send the task to the server with the lowest load
-        response = self.sendTaskToServer(bin_func, bin_args, client_stub,self.server_load_priority_queue[0][2], taskiter, tasks_pb2)
-        
-        return response
-    
-    # Add a task to the scheduling queue
-    def add_task(self, task_func, task_func_args, taskiter, client_stub, tasks_pb2, server_addresses):
-        task = Task(task_func, task_func_args)
-        self.task_queues.append_task(taskiter, task, taskiter)
+        taskAdd = Task(bin_func, bin_args, kwargs)
+        self.UpdateServerQueue(server_addresses, tasks_stub)
         task = self.task_queues.pop_task()
-        
-        response = self.PickServerAndSendTask(task.task_func, task.task_func_args, client_stub, server_addresses, tasks_pb2, taskiter)
+
+        # send the task to the server with the lowest load
+        return self.server_load_priority_queue[0][2], self.task_queues.pop_task()
     
-        return response
+    # # Add a task to the scheduling queue
+    # def add_task(self, task_func, task_func_args, taskiter, client_stub, server_addresses):
+    #     task = Task(task_func, task_func_args)
+    #     bin_func = task.task_func
+    #     bin_args = task.task_func_args
+    #     self.task_queues.append_task(task, taskiter)
+        
+    #     response = self.PickServerAndSendTask(bin_func, bin_args, client_stub, server_addresses, taskiter)
+    
+    #     return response
     
     
     
