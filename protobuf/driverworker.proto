@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+// Namespace
+package hive;
+
+// Execute
+message TaskRequest {
+    // Task ID
+    bytes task_id = 1;
+
+    // Function
+    bytes function = 2;
+
+    // Args
+    bytes args = 3;
+
+    // Object IDs
+    bytes object_locs = 4;
+}
+
+message TaskReply {
+    // Task ID
+    bytes task_id = 1;
+
+    // Return Value
+    bytes result = 3;
+
+    // Objects
+    bytes object_ids = 2;
+}
+
+// GetLoad
+message LoadRequest {
+}
+
+message LoadReply {
+    // CPU Load
+    bytes cpu_load = 1;
+
+    // Memory Utilization
+    bytes memory_util = 2;
+}
+
+// Driver to Worker
+service DriverWorkerService {
+    rpc Execute (TaskRequest) returns (TaskReply);
+    rpc GetLoad (LoadRequest) returns (LoadReply);
+}
