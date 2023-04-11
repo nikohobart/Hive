@@ -14,8 +14,18 @@ def optional_kwarg_decorator(fn):
     return wrapped_decorator
 
 
+class HiveCore:
+    def __init__(self):
+        self.store = 'placeholder'
+        self.scheduler = 'placeholder'
+        
+    @optional_kwarg_decorator
+    def remote(fn, server='localhost', server_port=50051):
+        return RemoteFunction(fn, server, server_port)
+
+
 class RemoteFunction:
-    def __init__(self, fn, server='localhost', server_port=50051):
+    def __init__(self, fn, server='localhost', server_port=50051, scheduler=None, objstore=None):
         self.fn = fn
         self.server = server
         self.server_port = server_port
@@ -27,15 +37,12 @@ class RemoteFunction:
         return res
 
 
-@optional_kwarg_decorator
-def remote(fn, server='localhost', server_port=50051):
-    return RemoteFunction(fn, server, server_port)
-
-
 if __name__ == '__main__':
+    hive = HiveCore()
+    
     ex_args = [32, 478]
     
-    @remote(server='localhost')
+    @hive.remote(server='localhost', server_port=8080)
     def simplesum(x: int, y: int) -> int:
         return x + y
     
