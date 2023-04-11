@@ -1,15 +1,15 @@
-import cloudpickle
+import grpc
 import logging
 from src.driver.scheduler import SchedulingQueue
 
 import grpc
 from src.driver.WorkerPQ import WorkerPQ
-from src.proto import driver_pb2
-from src.proto import driver_pb2_grpc
-from src.proto import worker_pb2
-from src.proto import worker_pb2_grpc
-from src.util import task
-
+from src.proto import driverworker_pb2
+from src.proto import driverworker_pb2_grpc
+from src.proto import workerworker_pb2
+from src.proto import workerworker_pb2_grpc
+from src.utils import task
+from src.utils import serialization
 
 class Client(object):
     """Client used for sending actor and task execution requests
@@ -27,16 +27,15 @@ class Client(object):
 
         # bind the client to the task service server channel and
         # the actor service server channel
-        self.tasks_stub = worker_pb2_grpc.WorkerServiceStub(self.channel)
-        self.actors_stub = driver_pb2_grpc.DriverServiceStub(self.channel)
-        
+        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
+
         # self task id generator 
         #TODO: this should probably be moved to a different part of the architecture
         self.scheduler = SchedulingQueue()
         self.workerPQ = WorkerPQ(['{}:{}'.format(self.host, self.server_port)]) 
 
-        
-    def get_execute_task(self, f: callable, args: list):
+
+    def get_execute_task(self, func: callable, args: list):
         """Executes task on client's host
 
         Args:
@@ -49,27 +48,27 @@ class Client(object):
         #response = self.scheduler.add_task(self.task_iter, bin_func, bin_args, self.task_iter, self.tasks_stub, [])
         
         # Get worker with least load
-        workerAddr = self.workerPQ.getServer(self.tasks_stub)
+        workerAddr = self.workerPQ.getServer(self.stub)
         
         # Add current task to waiting queue
-        newTask = task.Task(f, args)
+        newTask = task.Task(func, args)
         self.scheduler.addTask(newTask)
         
         # Get a FIFO task from scheduler
         curTask = self.scheduler.getTask()
         print('Serializing function ({}) and arguments ({})'.format(curTask.func.__name__, curTask.args))
-        bin_func = cloudpickle.dumps(curTask.func)
-        bin_args = cloudpickle.dumps(curTask.args)
+        bin_func = serialization.serialize(curTask.func)
+        bin_args = serialization.serialize(curTask.args)
         
         print("Sending function to worker ({}:{})".format(self.host, self.server_port))
 
 
-        response = self.tasks_stub.Execute(worker_pb2.TaskRequest(
+        response = self.stub.Execute(driverworker_pb2.TaskRequest(
             task_id=(curTask.id).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
         ))
         
-        result = cloudpickle.loads(response.result)
-        print("Response received:", result)
+        result = serialization.deserialize(response.result)
+        print("Client: Result received:", result)
 
         return result
         

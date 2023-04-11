@@ -1,19 +1,18 @@
 import psutil
 
-from src.proto import worker_pb2
-from src.proto import worker_pb2_grpc
-from src.worker import object_store
-from src.util import serialization
 
+from src.proto import driverworker_pb2_grpc
+from src.utils import serialization
+from src.proto import driverworker_pb2
 
-class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
+class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
     def Execute(self, request, context):
-        print("ExecuteTask RPC Called")
+        print("Worker: Execute RPC Called")
 
         depickled_func = serialization.deserialize(request.function)
         depickled_args = serialization.deserialize(request.args)
 
-        print("Received task ({}) with args ({})".format(depickled_func.__name__, depickled_args))
+        print(f"Worker: Received task ({depickled_func.__name__}) with args ({depickled_args})")
         
         # TODO: scheduler code
         # if localObjectStore.hasAllObjects(request.object_ids, depickled_args):
@@ -34,8 +33,8 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
         result = depickled_func(*depickled_args)
         
         # return result to client
-        print("Returning:", result)
-        return worker_pb2.TaskReply(task_id=request.task_id, result=serialization.serialize(result))
+        print("Worker: Returning result:", result)
+        return driverworker_pb2.TaskReply(task_id=request.task_id, result=serialization.serialize(result))
     
     # worker send grpc to master to check if master has all objects, return 
     # def MasterHasObjectsMapping():
@@ -47,12 +46,9 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
         memory_info = psutil.virtual_memory()
         
         memory_used = (memory_info.used / memory_info.total) * 100
+        
 
-        return worker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_load), memory_used=serialization.serialize(memory_used))
-
-    def CancelTask(self, request, context):
-        # TODO:
-        pass
+        return driverworker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_load), memory_used=serialization.serialize(memory_used))
     
     # Helper functions
     # convert a request to an internal Task representation

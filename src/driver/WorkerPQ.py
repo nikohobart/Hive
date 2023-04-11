@@ -1,7 +1,7 @@
 import heapq
-from src.proto import worker_pb2
-from src.proto import worker_pb2_grpc
-from src.util import serialization
+from src.proto import driverworker_pb2
+from src.proto import driverworker_pb2_grpc
+from src.utils import serialization
 
 class WorkerPQ:
 
@@ -19,7 +19,7 @@ class WorkerPQ:
     # update the server load priority queue by getting the resource load from each server
     def UpdateServerQueue(self, tasks_stub):
         for server in self.servers:
-            resourceLoadResponse = tasks_stub.GetLoad(worker_pb2.LoadRequest())
+            resourceLoadResponse = tasks_stub.GetLoad(driverworker_pb2.LoadRequest())
             cur_cpu_load = serialization.deserialize(resourceLoadResponse.cpu_load)
             cur_mem_used = serialization.deserialize(resourceLoadResponse.memory_used)
 

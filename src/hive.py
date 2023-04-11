@@ -2,8 +2,8 @@ import time
 import threading
 
 from src.driver.driver import Client
-from util.future import Future
-from worker.object_store import ObjectStore
+from src.utils.future import Future
+from src.worker.object_store import ObjectStore
 
 class HiveCore:
     def __init__(self):
