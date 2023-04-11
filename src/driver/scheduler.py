@@ -1,7 +1,7 @@
 import heapq
 
 class Task:
-    def init(self, task_func, task_func_args):
+    def __init__(self, task_func, task_func_args):
         self.task_func = task_func
         self.task_func_args = task_func_args
         self.state = TaskState.PLACEABLE

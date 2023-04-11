@@ -7,10 +7,7 @@ from src.util import serialization
 
 
 class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
-    def init(self):
-        self._object_store = object_store.ObjectStore()
-
-    def ExecuteTask(self, request, context):
+    def Execute(self, request, context):
         print("ExecuteTask RPC Called")
 
         depickled_func = serialization.deserialize(request.function)
@@ -18,21 +15,19 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
         print("Received task ({}) with args ({})".format(depickled_func.__name__, depickled_args))
         
-
-
-
-        if localObjectStore.hasAllObjects(request.object_ids, depickled_args):
-            # excute as normal and send back new mapping to master
-            pass
-        else:
-            storedObj, missingObj = localObjectStore.getFromLocalObjStore(request.object_ids)
-            serverAddr = master_has_all_objects(request.object_ids, depickled_args)
-            if serverAddr != None:
-                send_request_to_worker(request, depickled_args)
-                pass   
-            else:
-                # excute as normal but update local object store, return new mapping to master
-                pass
+        # TODO: scheduler code
+        # if localObjectStore.hasAllObjects(request.object_ids, depickled_args):
+        #     # excute as normal and send back new mapping to master
+        #     pass
+        # else:
+        #     storedObj, missingObj = localObjectStore.getFromLocalObjStore(request.object_ids)
+        #     serverAddr = master_has_all_objects(request.object_ids, depickled_args)
+        #     if serverAddr != None:
+        #         send_request_to_worker(request, depickled_args)
+        #         pass   
+        #     else:
+        #         # excute as normal but update local object store, return new mapping to master
+        #         pass
                 
         
         # unpack arguments array
@@ -40,19 +35,19 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
         
         # return result to client
         print("Returning:", result)
-        return hive_pb2.ExecuteReply(task_id=request.task_id, result=cloudpickle.dumps(result))
+        return worker_pb2.TaskReply(task_id=request.task_id, result=serialization.serialize(result))
     
     # worker send grpc to master to check if master has all objects, return 
     # def MasterHasObjectsMapping():
     #     pass
     
     # send grpc to worker to get resource load  
-    def GetResourceLoad(self, request, context):
+    def GetLoad(self, request, context):
         cpu_load = psutil.cpu_percent()
         memory_info = psutil.virtual_memory()
         memory_used = memory_info.used
 
-        return hive_pb2.GetResourceLoadResponse(cpu_load=cpu_load, memory_used=memory_used)
+        return worker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_load), memory_used=serialization.sermemory_used)
 
     def CancelTask(self, request, context):
         # TODO:
