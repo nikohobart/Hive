@@ -35,11 +35,11 @@ class Client(object):
             f (callable): function to be executed
             args (list): arguments for function
         """
-        print(f"Client: Serializing task ({func.__name__}) and arguments ({args})")
+        print(f"Driver: Serializing task ({func.__name__}) and arguments ({args})")
         bin_func = serialization.serialize(func)
         bin_args = serialization.serialize(args)
         
-        print(f"Client: Sending task to worker ({self.host}:{self.server_port})")
+        print(f"Driver: Sending task to worker ({self.host}:{self.server_port})")
 
         response = self.stub.Execute(driverworker_pb2.TaskRequest(
             task_id=(self.task_iter).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
@@ -47,7 +47,7 @@ class Client(object):
         self.task_iter += 1
         
         result = serialization.deserialize(response.result)
-        print("Client: Result received:", result)
+        print("Driver: Result received:", result)
 
         return result
         

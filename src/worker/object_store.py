@@ -1,28 +1,24 @@
 
 class ObjectStore():
     def __init__(self):
-        self._store = {}
+        self.__store = {}
 
-    def get(self, *object_ids):
-        objects = []
-        for object_id in object_ids:
-            if object_id not in self._store:
-                raise ValueError(f"Object {object_id} not found")
-            objects.append(self._store.get(object_id))
-        return objects
+    def get(self, object_id):
+        if object_id not in self.__store:
+            raise ValueError(f"Object {object_id} not found")
+        return self.__store[object_id]
 
     def set(self, object_id, object):
-        self._store[object_id] = object
+        self.__store[object_id] = object
 
-    def remove(self, *object_ids):
-        for object_id in object_ids:
-            if object_id not in self._store:
-                raise ValueError(f"Object {object_id} not found")
-            del self._store[object_id]
+    def remove(self, object_id):
+        if object_id not in self.__store:
+            raise ValueError(f"Object {object_id} not found")
+        del self.__store[object_id]
 
-    def contains(self, *object_ids):
-        for object_id in object_ids:
-            if object_id not in self._store:
-                return False
-        return True
+    def contains(self, object_id):
+        return object_id in self.__store
+    
+    def keys(self):
+        return self.__store.keys()
     
