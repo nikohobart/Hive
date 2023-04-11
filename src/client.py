@@ -47,7 +47,7 @@ class Client(object):
         
         print("Sending function to worker ({}:{})".format(self.host, self.server_port))
         response = self.tasks_stub.ExecuteTask(tasks_pb2.ExecuteRequest(
-            task_id=int.to_bytes(self.task_iter), function=bin_func, args=bin_args
+            task_id=(self.task_iter).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
         ))
         self.task_iter += 1
         

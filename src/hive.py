@@ -1,4 +1,6 @@
 from client import Client
+from src.utils import future
+import threading
 
 
 def optional_kwarg_decorator(fn):
@@ -13,15 +15,16 @@ def optional_kwarg_decorator(fn):
 
     return wrapped_decorator
 
+objstore={}
 
 class HiveCore:
     def __init__(self):
-        self.store = 'placeholder'
+        self.store = {}
         self.scheduler = 'placeholder'
         
     @optional_kwarg_decorator
     def remote(fn, server='localhost', server_port=50051):
-        return RemoteFunction(fn, server, server_port)
+        return RemoteFunction(fn, server, server_port, objstore=objstore)
 
 
 class RemoteFunction:
@@ -29,12 +32,19 @@ class RemoteFunction:
         self.fn = fn
         self.server = server
         self.server_port = server_port
+        self.objstore = objstore
         
         self.client = Client(self.server, self.server_port)
 
+    def exec(self, f, *args):
+        ret = self.client.get_execute_task(self.fn, args)
+        self.objstore[f._object_id] = ret
+        f.set_result(ret)
+
     def remote(self, *args, **kwargs):
-        res = self.client.get_execute_task(self.fn, args)
-        return res
+        f = future.Future()
+        threading.Thread(target = self.exec, args = (f, *args)).start()
+        return f
 
 
 if __name__ == '__main__':
