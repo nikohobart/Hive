@@ -72,9 +72,17 @@ class TaskQueue:
 class SchedulingQueue:
     def __init__(self):
         self.task_queues = TaskQueue()
-        self.server_load_priority_queue = []
+        
         # self.blocked_task_ids = set()
         # self.driver_task_ids = set()
+    
+    # Add task to waiting Queue
+    def addTask(self, task):
+        self.task_queues.append_task(task, task.id)
+    
+    # Get a task from waiting Queue
+    def getTask(self):
+        return self.task_queues.pop_task()
 
     def has_task(self, task_id):
         return any(queue.has_task(task_id) for queue in self.task_queues.values())
@@ -138,24 +146,6 @@ class SchedulingQueue:
 
     def remove_driver_task_id(self, task_id):
         self.driver_task_ids.discard(task_id)
-
-    # update the server load priority queue by getting the resource load from each server
-    def UpdateServerQueue(self, server_addresses, tasks_stub):
-
-        for server_address in server_addresses:
-            
-            resourceLoadResponse = tasks_stub.GetLoad(worker_pb2.LoadRequest())
-            print("CPU Load: {}%".format(resourceLoadResponse.cpu_load))
-            print("Memory Used: {}%".format(resourceLoadResponse.memory_used))
-            
-            # sort by cpu load, then by memory used
-            server_load_tuple = (resourceLoadResponse.cpu_load, resourceLoadResponse.memory_used, server_address)
-            heapq.heappush(self.server_load_priority_queue, server_load_tuple)
-
-            # print("Sorted server loads:")
-            # while self.server_load_priority_queue:
-            #     cpu_load, memory_used, server_address = heapq.heappop(server_load_priority_queue)
-            #     print(f"{server_address}: CPU Load: {cpu_load}%, Memory Used: {memory_used} bytes")
 
     # send task to a specific server
     # TODO How to send by a specifc server?
