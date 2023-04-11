@@ -1,7 +1,13 @@
 import numpy as np
 import time
 
+from hive import HiveCore
 
+
+hive = HiveCore()
+
+
+@hive.remote(server_port=8080)
 def lineqn_solve(n=10000):
     # Generate a large random matrix
     A = np.random.rand(n, n)
@@ -17,7 +23,7 @@ def lineqn_solve(n=10000):
     print("Time taken for solving the linear equation:", end_time - start_time, "seconds")
     return x
 
-
+@hive.remote(server_port=8081)
 def matrix_mult(n=10000):
     # Generate two large random matrices
     n = 10000
@@ -36,8 +42,22 @@ def matrix_mult(n=10000):
 
 if __name__ == '__main__':
     start_time = time.time()
-    value1 = lineqn_solve()
-    value2 = matrix_mult()
+    future1 = lineqn_solve.remote()
+    print("Thread 1: Future Returned")
+
+    print("Thread 1: Do Other Work Here...")
+    future2 = matrix_mult.remote()
+
+    value1 = future1.get()
+    print("Thread 1: Value 1 Returned:", value1)
+    
+    value2 = future2.get()
+    print("Thread 1: Value 2 Returned:", value2)
     
     print("Output: {} + {} = {}".format(value1, value2, value1+value2))
     print("Took {} seconds".format(time.time() - start_time))
+
+    stored_values1 = hive.store.get(future1._object_id)
+    stored_values2 = hive.store.get(future2._object_id)
+    print("Thread 1: Values Stored:", *stored_values1)
+    print("Thread 1: Values Stored:", *stored_values2)
