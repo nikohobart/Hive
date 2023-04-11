@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+// Namespace
+package hive;
+
+// GetObject
+message ObjectRequest {
+    // Object IDs
+    bytes object_ids = 1;
+}
+
+message ObjectReply {
+    // Objects
+    bytes objects = 1;
+}
+
+// Worker to Worker
+service WorkerWorkerService {
+    rpc GetObject (ObjectRequest) returns (ObjectReply);
+}

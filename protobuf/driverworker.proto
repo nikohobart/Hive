@@ -13,25 +13,20 @@ message TaskRequest {
 
     // Args
     bytes args = 3;
+
+    // Object IDs
+    bytes object_locs = 4;
 }
 
 message TaskReply {
     // Task ID
     bytes task_id = 1;
 
-    // Return value
-    bytes result = 2;
-}
+    // Return Value
+    bytes result = 3;
 
-// GetObject
-message ObjectRequest {
-    // Object IDs
-    bytes object_ids = 1;
-}
-
-message ObjectReply {
     // Objects
-    bytes objects = 1;
+    bytes object_ids = 2;
 }
 
 // GetLoad
@@ -46,9 +41,8 @@ message LoadReply {
     bytes memory_util = 2;
 }
 
-// Hive Worker
-service WorkerService {
+// Driver to Worker
+service DriverWorkerService {
     rpc Execute (TaskRequest) returns (TaskReply);
-    rpc GetObject (ObjectRequest) returns (ObjectReply);
     rpc GetLoad (LoadRequest) returns (LoadReply);
 }

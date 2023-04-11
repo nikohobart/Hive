@@ -1,14 +1,14 @@
 import argparse
-from concurrent import futures
 import logging
 import signal
 import sys
+from concurrent import futures
 
 import grpc
-from src.proto import worker_pb2_grpc
-from src.proto import driver_pb2_grpc
-from src.services.worker_service import WorkerService
-from src.services.driver_service import DriverService
+from src.proto import driverworker_pb2_grpc
+from src.proto import workerworker_pb2_grpc
+from src.services.driverworker_service import DriverWorkerService
+from src.services.workerworker_service import WorkerWorkerService
 
 
 class Server(object):
@@ -47,8 +47,8 @@ class Server(object):
     
 
 def add_services(server):
-    worker_pb2_grpc.add_WorkerServiceServicer_to_server(WorkerService(), server)
-    driver_pb2_grpc.add_DriverServiceServicer_to_server(DriverService(), server)
+    driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(), server)
+    workerworker_pb2_grpc.add_WorkerWorkerServiceServicer_to_server(WorkerWorkerService(), server)
     
     
 def signalHandler(signal, frame):
@@ -60,8 +60,8 @@ def signalHandler(signal, frame):
 if __name__ == '__main__':
     logging.basicConfig()
     
-    parser = argparse.ArgumentParser(description='Runs a Hive server')
-    parser.add_argument('-p', '--port', type=int, help='Port to run on', required=True)
+    parser = argparse.ArgumentParser(description='Runs a Hive worker')
+    parser.add_argument('-p', '--port', type=int, help='Port Number', required=True)
     args = parser.parse_args()
 
     server = Server(port=args.port)
