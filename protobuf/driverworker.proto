@@ -26,6 +26,7 @@ message TaskReply {
     bytes result = 3;
 
     // Objects
+    // 2 lists, index 0: missing objects, index 1: current objects
     bytes object_ids = 2;
 }
 

@@ -10,6 +10,7 @@ from src.proto import workerworker_pb2
 from src.proto import workerworker_pb2_grpc
 from src.utils import task
 from src.utils import serialization
+from src.driver.control_store import ControlStore
 
 class Client(object):
     """Client used for sending actor and task execution requests
@@ -18,16 +19,10 @@ class Client(object):
     def __init__(self, server='localhost', server_port=50051):
         # configure the host and the
         # the port to which the client should connect to
-        self.host = server
         self.server_port = server_port
-
-        # instantiate a communication channel
-        self.channel = grpc.insecure_channel(
-            '{}:{}'.format(self.host, self.server_port))
-
-        # bind the client to the task service server channel and
-        # the actor service server channel
-        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
+        self.controlStore = ControlStore()
+        s = '{}:{}'.format(server, self.server_port)
+        self.updateChannel(s)
 
         # self task id generator 
         #TODO: this should probably be moved to a different part of the architecture
@@ -49,6 +44,7 @@ class Client(object):
         
         # Get worker with least load
         workerAddr = self.workerPQ.getServer(self.stub)
+        self.updateChannel(workerAddr)
         
         # Add current task to waiting queue
         newTask = task.Task(func, args)
@@ -68,7 +64,31 @@ class Client(object):
         ))
         
         result = serialization.deserialize(response.result)
-        print("Client: Result received:", result)
-
-        return result
+        print("Client: Result received:", response)
+        self.updateStore(workerAddr, result)
         
+        return result
+
+    
+    def updateChannel(self, server):
+         # instantiate a communication channel
+        self.channel = grpc.insecure_channel(server)
+
+        # bind the client to the task service server channel and
+        # the actor service server channel
+        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
+        
+    def updateStore(self, workerAddr, response):
+        objectIds = serialization.deserialize(response.object_ids)
+        requiredIds = objectIds["missing"]
+        currentIds = objectIds["current"]
+        self.controlStore.set(workerAddr, currentIds)
+        if len(requiredIds) != 0:
+            sendObjects(workerAddr, requiredIds)
+
+    def sendObjects(self, workerAddr, requiredIds):
+    
+        
+        
+# Checking if reply has object IDs
+# send request with workerIDs
