@@ -45,7 +45,7 @@ class Client(object):
         bin_func = cloudpickle.dumps(f)
         bin_args = cloudpickle.dumps(args)
         
-        print("Sending function to worker ({})".format(self.host))
+        print("Sending function to worker ({}:{})".format(self.host, self.server_port))
 
         # Add task to scheduling queue
         # TODO: how to get server addresses?

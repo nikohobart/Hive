@@ -1,3 +1,4 @@
+import argparse
 from concurrent import futures
 import logging
 import signal
@@ -50,7 +51,11 @@ def signalHandler(signal, frame):
 if __name__ == '__main__':
     logging.basicConfig()
     
-    server = Server()
+    parser = argparse.ArgumentParser(description='Runs a Hive server')
+    parser.add_argument('-p', '--port', type=int, help='Port to run on', required=True)
+    args = parser.parse_args()
+
+    server = Server(port=args.port)
     signal.signal(signal.SIGINT, signalHandler)
     
     add_services(server.instance)
