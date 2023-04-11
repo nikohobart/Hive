@@ -1,40 +1,42 @@
+import time
+import threading
+
 from driver.driver import Client
-
-
-def optional_kwarg_decorator(fn):
-    def wrapped_decorator(*args, **kwargs):
-        if len(args) == 1 and callable(args[0]):
-            return fn(args[0])
-        else:
-            def real_decorator(decoratee):
-                return fn(decoratee, **kwargs)
-
-            return real_decorator
-
-    return wrapped_decorator
-
+from utils.future import Future
+from worker.object_store import ObjectStore
 
 class HiveCore:
     def __init__(self):
-        self.store = 'placeholder'
-        self.scheduler = 'placeholder'
+        self.store = ObjectStore()
+        self.scheduler = None
         
-    @optional_kwarg_decorator
-    def remote(fn, server='localhost', server_port=50051):
-        return RemoteFunction(fn, server, server_port)
+    def remote(self, server='localhost', server_port=8080):
+        def outer(func):
+            return RemoteFunction(func, server, server_port, store=self.store, scheduler=self.scheduler)
 
+        return outer
 
 class RemoteFunction:
-    def __init__(self, fn, server='localhost', server_port=50051, scheduler=None, objstore=None):
-        self.fn = fn
+    def __init__(self, func, server='localhost', server_port=8080, store=None, scheduler=None):
+        self.func = func
         self.server = server
         self.server_port = server_port
-        
+
+        self.store=store
+        self.scheduler=scheduler
+
         self.client = Client(self.server, self.server_port)
 
+    def exec(self, future, *args):
+        ret = self.client.get_execute_task(self.func, args)
+        self.store.set(future._object_id, ret)
+        future.set_result(ret)
+        print("Thread 2: Returned")
+
     def remote(self, *args, **kwargs):
-        res = self.client.get_execute_task(self.fn, args)
-        return res
+        future = Future()
+        threading.Thread(target = self.exec, args = (future, *args)).start()
+        return future
 
 
 if __name__ == '__main__':
@@ -44,7 +46,16 @@ if __name__ == '__main__':
     
     @hive.remote(server='localhost', server_port=8080)
     def simplesum(x: int, y: int) -> int:
+        time.sleep(5)
         return x + y
     
-    res = simplesum.remote(*ex_args)
-    print("Success:", res)
+    future = simplesum.remote(*ex_args)
+    print("Thread 1: Future Returned")
+
+    print("Thread 1: Do Other Work Here...")
+
+    value = future.get()
+    print("Thread 1: Value Returned:", value)
+
+    stored_values = hive.store.get(future._object_id)
+    print("Thread 1: Value Stored:", *stored_values)
