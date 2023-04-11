@@ -1,4 +1,4 @@
-from hive import HiveCore
+from src.hive import HiveCore
 
 
 if __name__ == '__main__':
