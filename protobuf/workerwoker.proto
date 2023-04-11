@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+// Namespace
+package hive;
+
+// worker -> worker
+service BetweenWorkerService{
+    rpc GetObject (ObjectRequest) returns (ObjectReply);
+}
+

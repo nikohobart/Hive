@@ -37,6 +37,15 @@ class Server(object):
         self.__server.stop(3)        
 
 
+    # send a request to another worker    
+    def GetRemoteObj(self, request, context):
+        with grpc.insecure_channel('{}:{}'.format(self.__address, self.server_port)) as channel:
+            stub = worker_pb2_grpc.WokerServiceStub(channel)
+            
+            response_from_remote = stub.GetObject(request)
+            return response_from_remote
+    
+
 def add_services(server):
     worker_pb2_grpc.add_WorkerServiceServicer_to_server(WorkerService(), server)
     driver_pb2_grpc.add_DriverServiceServicer_to_server(DriverService(), server)
