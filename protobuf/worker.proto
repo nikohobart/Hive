@@ -43,7 +43,7 @@ message LoadReply {
     bytes cpu_load = 1;
 
     // Memory Utilization
-    bytes memory_util = 2;
+    bytes memory_used = 2;
 }
 
 // Hive Worker

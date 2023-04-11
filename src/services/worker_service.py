@@ -45,9 +45,10 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
     def GetLoad(self, request, context):
         cpu_load = psutil.cpu_percent()
         memory_info = psutil.virtual_memory()
-        memory_used = memory_info.used
+        
+        memory_used = (memory_info.used / memory_info.total) * 100
 
-        return worker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_load), memory_used=serialization.sermemory_used)
+        return worker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_load), memory_used=serialization.serialize(memory_used))
 
     def CancelTask(self, request, context):
         # TODO:

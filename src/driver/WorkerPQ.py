@@ -1,6 +1,7 @@
 import heapq
 from src.proto import worker_pb2
 from src.proto import worker_pb2_grpc
+from src.util import serialization
 
 class WorkerPQ:
 
@@ -17,16 +18,16 @@ class WorkerPQ:
 
     # update the server load priority queue by getting the resource load from each server
     def UpdateServerQueue(self, tasks_stub):
-
         for server in self.servers:
-            
             resourceLoadResponse = tasks_stub.GetLoad(worker_pb2.LoadRequest())
+            cur_cpu_load = serialization.deserialize(resourceLoadResponse.cpu_load)
+            cur_mem_used = serialization.deserialize(resourceLoadResponse.memory_used)
 
-            print("CPU Load: {}%".format(resourceLoadResponse.cpu_load))
-            print("Memory Used: {}%".format(resourceLoadResponse.memory_used))
+            print("CPU Load: {}%".format(cur_cpu_load))
+            print("Memory Used: {}%".format(cur_mem_used))
             
             # sort by cpu load, then by memory used
-            server_load_tuple = (resourceLoadResponse.cpu_load, resourceLoadResponse.memory_used, server)
+            server_load_tuple = (cur_cpu_load, cur_mem_used, server)
             
             heapq.heappush(self.loadPQ, server_load_tuple)
 

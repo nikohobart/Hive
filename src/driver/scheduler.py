@@ -6,7 +6,7 @@ from src.proto import driver_pb2
 from src.proto import driver_pb2_grpc
 from src.proto import worker_pb2
 from src.proto import worker_pb2_grpc
-from util.task import Task
+from src.util.task import Task
 
 # class Task:
 #     def __init__(self, task_func, task_func_args):

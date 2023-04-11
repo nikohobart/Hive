@@ -1,14 +1,14 @@
 import cloudpickle
 import logging
-from .scheduler import SchedulingQueue
+from src.driver.scheduler import SchedulingQueue
 
 import grpc
-from util import Task
-from WorkerPQ import WorkerPQ
+from src.driver.WorkerPQ import WorkerPQ
 from src.proto import driver_pb2
 from src.proto import driver_pb2_grpc
 from src.proto import worker_pb2
 from src.proto import worker_pb2_grpc
+from src.util import task
 
 
 class Client(object):
@@ -52,20 +52,20 @@ class Client(object):
         workerAddr = self.workerPQ.getServer(self.tasks_stub)
         
         # Add current task to waiting queue
-        task = Task(f, args)
-        self.scheduler.addTask(task)
+        newTask = task.Task(f, args)
+        self.scheduler.addTask(newTask)
         
         # Get a FIFO task from scheduler
-        task = self.scheduler.getTask()
-        print('Serializing function ({}) and arguments ({})'.format(task.func.__name__, task.args))
-        bin_func = cloudpickle.dumps(task.func)
-        bin_args = cloudpickle.dumps(task.args)
+        curTask = self.scheduler.getTask()
+        print('Serializing function ({}) and arguments ({})'.format(curTask.func.__name__, curTask.args))
+        bin_func = cloudpickle.dumps(curTask.func)
+        bin_args = cloudpickle.dumps(curTask.args)
         
         print("Sending function to worker ({}:{})".format(self.host, self.server_port))
 
 
         response = self.tasks_stub.Execute(worker_pb2.TaskRequest(
-            task_id=(self.task.id).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
+            task_id=(curTask.id).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
         ))
         
         result = cloudpickle.loads(response.result)

@@ -1,7 +1,7 @@
 import time
 import threading
 
-from driver.driver import Client
+from src.driver.driver import Client
 from util.future import Future
 from worker.object_store import ObjectStore
 

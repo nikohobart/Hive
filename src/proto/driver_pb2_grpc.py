@@ -2,9 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-#import driver_pb2 as driver__pb2
 from src.proto import driver_pb2 as driver__pb2
-
 
 class DriverServiceStub(object):
     """Hive Driver
