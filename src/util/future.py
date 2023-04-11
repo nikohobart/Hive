@@ -1,10 +1,8 @@
+import uuid
 
 class Future:
-    _lastId = 0
-
     def __init__(self):
-        Future._lastId + 1
-        self._object_id = Future._lastId
+        self._object_id = uuid.uuid1()
         self._result = None
         self._exception = None
 
@@ -15,9 +13,12 @@ class Future:
         self._exception = exception
     
     def get(self):
+        while not self.done():
+            pass
         if self._exception:
             raise self._exception
-        return self._result
+        else:
+            return self._result
     
     def done(self):
         return self._result is not None or self._exception is not None

@@ -57,4 +57,6 @@ class Client(object):
         
         result = cloudpickle.loads(response.result)
         print("Response received:", result)
+
+        return result
         
