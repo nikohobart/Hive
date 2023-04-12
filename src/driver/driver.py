@@ -1,8 +1,8 @@
 import grpc
 import logging
-
+import uuid
 from src.driver.scheduler import SchedulingQueue
-
+import time
 import grpc
 from src.driver.WorkerPQ import WorkerPQ
 from src.proto import driverworker_pb2
@@ -17,11 +17,11 @@ class Client(object):
     """Client used for sending actor and task execution requests
     """
     
-    def __init__(self, server='localhost', server_port=50051, scheduler=None):
+    def __init__(self, server='localhost', server_port=50051, scheduler=None, controlStore=None):
         # configure the host and the
         # the port to which the client should connect to
         self.server_port = server_port
-        self.controlStore = ControlStore()
+        self.controlStore = controlStore
         self.scheduler = scheduler
 
         # Get worker with least load
@@ -101,7 +101,19 @@ class Client(object):
             if self.controlStore.contains(id):
                 objectLocs[id] = self.controlStore.get(id)[0]
             else:
-                objectLocs[id] = None
-        #self.stub.Execute(driverworker_pb2.TaskRequest(
+                start_time = time.time()
+                while True:
+                    if self.controlStore.contains(id):
+                         objectLocs[id] = self.controlStore.get(id)[0]
+                         break
+                     
+                    elapsed_time = time.time() - start_time
+                    if elapsed_time >= 30:
+                            print("Timeout reached, didn't find:", x)
+                            break
+                    time.sleep(0.1)
+                    
+        binObjects = serialization.serialize(objectLocs)
+        serialId = uuid.uuid1().int>>64
+        self.stub.Execute(driverworker_pb2.TaskRequest((serialId).to_bytes(length=10, byteorder='little'), objectLocs = binObjects))
         
-

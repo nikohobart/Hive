@@ -16,6 +16,9 @@ class WorkerPQ:
             self.generateStubs()
     
     def addServer(self, server):
+        if server in self.servers:
+            return
+
         self.servers.append(server)
         self.createChannel(server)
         
@@ -47,7 +50,8 @@ class WorkerPQ:
             resourceLoadResponse = stub.GetLoad(driverworker_pb2.LoadRequest())
             cur_cpu_load = serialization.deserialize(resourceLoadResponse.cpu_load)
             cur_mem_used = serialization.deserialize(resourceLoadResponse.memory_used)
-
+            
+            print(server)
             print("CPU Load: {}%".format(cur_cpu_load))
             print("Memory Used: {}%".format(cur_mem_used))
             
@@ -62,5 +66,6 @@ class WorkerPQ:
             #     print(f"{server_address}: CPU Load: {cpu_load}%, Memory Used: {memory_used} bytes")
     
     def getServer(self):
+        print(len(self.loadPQ))
         self.UpdateServerQueue()
         return self.loadPQ[0][2]

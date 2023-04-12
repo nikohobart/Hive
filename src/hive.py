@@ -5,9 +5,12 @@ from src.driver.driver import Client
 from src.utils.future import Future
 from src.worker.object_store import ObjectStore
 from src.driver.scheduler import SchedulingQueue
+from src.driver.control_store import ControlStore
+
 class HiveCore:
     def __init__(self):
         self.store = ObjectStore()
+        #self.controlStore = ControlStore()
         self.scheduler=SchedulingQueue()
         
     def remote(self, server='localhost', server_port=8080):
