@@ -42,13 +42,14 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
     
     # send grpc to worker to get resource load  
     def GetLoad(self, request, context):
-        cpu_load = psutil.cpu_percent()
-        memory_info = psutil.virtual_memory()
+        #cpu_load = psutil.cpu_percent()
+        #memory_info = psutil.virtual_memory()
         
-        memory_used = (memory_info.used / memory_info.total) * 100
-        
+        #memory_used = (memory_info.used / memory_info.total) * 100
+        cpu_percent = psutil.Process().cpu_percent()
+        mem_percent = psutil.Process().memory_percent()
 
-        return driverworker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_load), memory_used=serialization.serialize(memory_used))
+        return driverworker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_percent), memory_used=serialization.serialize(mem_percent))
     
     # Helper functions
     # convert a request to an internal Task representation

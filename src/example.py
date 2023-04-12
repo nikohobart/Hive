@@ -24,7 +24,7 @@ if __name__ == '__main__':
     stored_values = hive.store.get(future._object_id)
     print("Thread 1: Value Stored:", *stored_values)
 
-    for i in range(1, 6):
+    for i in range(1, 100):
         @hive.remote(server='localhost', server_port=8081)
         def simplemult(x: int, y: int) -> int:
             time.sleep(5)

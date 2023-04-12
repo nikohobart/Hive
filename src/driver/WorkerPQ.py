@@ -43,6 +43,7 @@ class WorkerPQ:
 
     # update the server load priority queue by getting the resource load from each server
     def UpdateServerQueue(self):
+        self.loadPQ = []
         for item in self.taskStubs:
             server = item[0]
             stub = item[1]
@@ -66,6 +67,8 @@ class WorkerPQ:
             #     print(f"{server_address}: CPU Load: {cpu_load}%, Memory Used: {memory_used} bytes")
     
     def getServer(self):
-        print(len(self.loadPQ))
         self.UpdateServerQueue()
+        if len(self.loadPQ) >= 2:
+            print(self.loadPQ[0])
+            print(self.loadPQ[1])
         return self.loadPQ[0][2]

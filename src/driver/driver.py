@@ -26,7 +26,7 @@ class Client(object):
 
         # Get worker with least load
         self.workerAddr = self.scheduler.workerPQ.getServer()
-
+        print("client Received: ", self.workerAddr)
         if self.workerAddr is None:
             s = '{}:{}'.format(server, self.server_port)
             self.updateChannel(s)
