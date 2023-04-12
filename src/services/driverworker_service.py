@@ -136,9 +136,10 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
             print(f"Worker {self.address}:{self.port}: Execute RPC: Sending GetObject RPC to Worker {loc}: {object_ids}")
 
             result = stub.GetObject(workerworker_pb2.ObjectRequest(object_ids=bin_object_ids))
+            depickled_objects = serialization.deserialize(result.objects)
 
-            print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {result}")
+            print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {depickled_objects}")
             
-            objects.update(serialization.deserialize(result.objects))
+            objects.update(depickled_objects)
 
         return

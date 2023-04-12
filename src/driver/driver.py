@@ -19,16 +19,11 @@ class Client(object):
         self.server = server
         self.server_port = server_port
 
-        self.worker = self.scheduler.workerPQ.getServer()
+        self.task = None
+        self.worker = None
 
-        if self.worker is None:
-            self.channel = grpc.insecure_channel(f"{self.server}:{self.server_port}")
-        else:
-            self.channel = grpc.insecure_channel(self.worker)
-        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
-
-    def get_worker(self):
-        return self.worker
+        self.stub = None
+        self.channel = None
 
     def get_execute_task(self, future_id, func: callable, args: list, kwargs: dict):
         """Executes task on client's host
@@ -40,16 +35,24 @@ class Client(object):
         
         # Add new task to scheduler
         new_task = Task(func, args, kwargs)
-        self.scheduler.addTask(new_task)
-        
-        # Get task from scheduler
-        cur_task = self.scheduler.getTask()
+        self.scheduler.add_task(new_task)
 
-        bin_task_id = serialization.serialize(cur_task.id)
+        self.task, self.worker = self.scheduler.get_task()
+        self.control_store.set(self.worker, future_id)
+
+        print(self.task, self.worker)
+
+        if self.worker is None:
+            self.channel = grpc.insecure_channel(f"{self.server}:{self.server_port}")
+        else:
+            self.channel = grpc.insecure_channel(self.worker)
+        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
+
+        bin_task_id = serialization.serialize(self.task.id)
         bin_future_id = serialization.serialize(future_id)
-        bin_func = serialization.serialize(cur_task.func)
-        bin_args = serialization.serialize(cur_task.args)
-        bin_kwargs = serialization.serialize(cur_task.kwargs)
+        bin_func = serialization.serialize(self.task.func)
+        bin_args = serialization.serialize(self.task.args)
+        bin_kwargs = serialization.serialize(self.task.kwargs)
         bin_locs = serialization.serialize(0)
         
         print(f"Driver {self.server}:{self.server_port}: Sending Execute RPC on Worker {self.worker}: {func.__name__, args, kwargs}")

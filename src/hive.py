@@ -3,14 +3,14 @@ import threading
 
 from src.driver.control_store import ControlStore
 from src.driver.driver import Client
-from src.driver.scheduler import SchedulingQueue
+from src.driver.scheduler import RRScheduler, LoadBalancingScheduler, LocalityAwareScheduler
 from src.utils.future import Future
 
 class HiveCore:
-    def __init__(self):
+    def __init__(self, workers):
         # Initialize global scheduler and global control store
-        self.scheduler = SchedulingQueue()
         self.control_store = ControlStore()
+        self.scheduler = LocalityAwareScheduler(workers, self.control_store)
         
     def remote(self, server='localhost', server_port=8080):
         # Return wrapped function
@@ -27,15 +27,9 @@ class RemoteFunction:
         self.server = server
         self.server_port = server_port
 
-        self.scheduler.workerPQ.addServer(f"{server}:{server_port}".format(server, server_port))
         self.client = Client(self.scheduler, self.control_store, self.server, self.server_port)
 
     def exec(self, future, args, kwargs):
-        worker = self.client.get_worker()
-        self.control_store.set(worker, future.get_id())
-
-        print(args, kwargs)
-
         ret = self.client.get_execute_task(future.get_id(), self.func, args, kwargs)
         future.set_result(ret)
 

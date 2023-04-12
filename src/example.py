@@ -3,7 +3,9 @@ import time
 from src.hive import HiveCore
 
 if __name__ == '__main__':
-    hive = HiveCore()
+    workers = ["localhost:5000", "localhost:5001", "localhost:5002"]
+
+    hive = HiveCore(workers)
     
     @hive.remote(server='localhost', server_port=8080)
     def simple_sum(*args):
@@ -23,7 +25,6 @@ if __name__ == '__main__':
     
     @hive.remote(server='localhost', server_port=8082)
     def simple_arithmetic(*args, **kwargs):
-        print(kwargs)
         if "op" in kwargs:
             if kwargs["op"] == "add":
                 sum = 0
@@ -62,7 +63,7 @@ if __name__ == '__main__':
         args = [3, 5]
 
         add_future = simple_sum.remote(*args)
-        mult_future = simple_sum.remote(3, mult_future)
+        mult_future = simple_mult.remote(3, add_future)
 
         print(f"Client: Futures returned: {add_future.get(), mult_future.get()}")
 
@@ -85,26 +86,12 @@ if __name__ == '__main__':
         print(f"Client: Future returned: {future.get()}")
 
 
+    def simple_fibonnaci():
+        fibonacci = [1, 1]
+        for i in range(20):
+            fibonacci.append(simple_sum.remote(fibonacci[i], fibonacci[i + 1]))
+        print(fibonacci[21].get())
+
     kwarg_future_test()
 
-    '''
-    for i in range(1, 100):
-        @hive.remote(server='localhost', server_port=8081)
-        def simplemult(x: int, y: int) -> int:
-            time.sleep(5)
-            return x * y
-
-        ex_args2 = [5*i, 10*i]
-        future = simplemult.remote(*ex_args2)
-        print("Thread {}: Future Returned".format(i))
-
-        print("Thread {}: Do Other Work Here...".format(i))
-
-        value = future.get()
-        print("Thread {}: Value Returned: {}".format(i, value))
-
-        stored_values = hive.store.get(future.get_id())
-        print("Thread {}: Value Stored: {}".format(i, stored_values))
-    '''
-        
-        
+    
