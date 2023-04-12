@@ -41,7 +41,8 @@ class Server(object):
         self.__server.stop(3)        
 
     def __add_services(self):
-        driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(self.__object_store), self.__server)
+        s = '{}:{}'.format(self.__address, self.__port)
+        driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(self.__object_store, s), self.__server)
         workerworker_pb2_grpc.add_WorkerWorkerServiceServicer_to_server(WorkerWorkerService(self.__object_store), self.__server)
     
     

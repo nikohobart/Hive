@@ -26,7 +26,7 @@ class Client(object):
 
         # Get worker with least load
         self.workerAddr = self.scheduler.workerPQ.getServer()
-        print("client Received: ", self.workerAddr)
+        #print("client Received: ", self.workerAddr)
         if self.workerAddr is None:
             s = '{}:{}'.format(server, self.server_port)
             self.updateChannel(s)
@@ -37,8 +37,10 @@ class Client(object):
         #TODO: this should probably be moved to a different part of the architecture
         #self.workerPQ = WorkerPQ(['{}:{}'.format(self.host, self.server_port)]) 
 
+    def getWorker(self):
+        return self.workerAddr
 
-    def get_execute_task(self, func: callable, args: list):
+    def get_execute_task(self, func: callable, args: list, future_id=None):
         """Executes task on client's host
 
         Args:
@@ -54,26 +56,29 @@ class Client(object):
         newTask = task.Task(func, args)
         self.scheduler.addTask(newTask)
         
+        
         # Get a FIFO task from scheduler
         curTask = self.scheduler.getTask()
         print('Serializing function ({}) and arguments ({})'.format(curTask.func.__name__, curTask.args))
         bin_func = serialization.serialize(curTask.func)
         bin_args = serialization.serialize(curTask.args)
+        bin_locs = serialization.serialize(0)
+        self.futureIdserial =  serialization.serialize(future_id)
         
         print("Sending function to worker ({})".format(self.workerAddr))
 
-
         response = self.stub.Execute(driverworker_pb2.TaskRequest(
-            task_id=(curTask.id).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
+            task_id=(curTask.id).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args, object_locs=bin_locs, future_id=self.futureIdserial
         ))
         
         result = serialization.deserialize(response.result)
-        print("Client: Result received:", response)
+        print("Client: Result received:", result)
 
         # Updating ControlStore
-        #self.updateStore(response)
-        
-        return result
+        if result == "MissingArgument":
+            return self.updateStore(response, bin_func, bin_args)
+        else:
+            return result
 
     
     def updateChannel(self, server):
@@ -86,34 +91,44 @@ class Client(object):
 
     # This method is used to update ControlServer on basis of current objects stored by worker
     # It also sends worker associated with required objects    
-    def updateStore(self, response):
+    def updateStore(self, response, bin_func, bin_args):
         objectIds = serialization.deserialize(response.object_ids)
         requiredIds = objectIds["missing"]
         currentIds = objectIds["current"]
+        print("CURRENTID: ", currentIds)
         self.controlStore.set(self.workerAddr, currentIds)
         if len(requiredIds) != 0:
-            self.sendObjects(requiredIds)
+            print("ID: ", requiredIds)
+            return self.sendObjects(requiredIds, bin_func, bin_args)
+        else:
+            return None
 
     # This method sends workers associated with required objects 
-    def sendObjects(self, requiredIds):
+    def sendObjects(self, requiredIds, bin_func, bin_args):
         objectLocs = {}
+        
         for id in requiredIds:
+            print("ID: ", id)
             if self.controlStore.contains(id):
-                objectLocs[id] = self.controlStore.get(id)[0]
+                objectLocs[id] = self.controlStore.get([id])[0]
             else:
                 start_time = time.time()
                 while True:
                     if self.controlStore.contains(id):
-                         objectLocs[id] = self.controlStore.get(id)[0]
+                         print("VALUE: ", self.controlStore.get([id])[0])
+                         objectLocs[id] = self.controlStore.get([id])[0]
                          break
                      
                     elapsed_time = time.time() - start_time
-                    if elapsed_time >= 30:
-                            print("Timeout reached, didn't find:", x)
+                    if elapsed_time >= 10:
+                            print("Timeout reached, didn't find")
                             break
                     time.sleep(0.1)
                     
         binObjects = serialization.serialize(objectLocs)
+        print("OBJECTS: ", objectLocs)
         serialId = uuid.uuid1().int>>64
-        self.stub.Execute(driverworker_pb2.TaskRequest((serialId).to_bytes(length=10, byteorder='little'), objectLocs = binObjects))
-        
+        response = self.stub.Execute(driverworker_pb2.TaskRequest(task_id=(serialId).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args, object_locs = binObjects,  future_id=self.futureIdserial))
+        result = serialization.deserialize(response.result)
+        print("TESTERRRRRRR: ", result)
+        return result

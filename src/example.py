@@ -21,9 +21,10 @@ if __name__ == '__main__':
     value = future.get()
     print("Thread 1: Value Returned:", value)
 
-    stored_values = hive.store.get(future._object_id)
-    print("Thread 1: Value Stored:", *stored_values)
+    stored_values = hive.store.get(future.get_id())
+    print("Thread 1: Value Stored:", stored_values)
 
+    '''
     for i in range(1, 100):
         @hive.remote(server='localhost', server_port=8081)
         def simplemult(x: int, y: int) -> int:
@@ -39,5 +40,20 @@ if __name__ == '__main__':
         value = future.get()
         print("Thread {}: Value Returned: {}".format(i, value))
 
-        stored_values = hive.store.get(future._object_id)
-        print("Thread {}: Value Stored: {}".format(i, *stored_values))
+        stored_values = hive.store.get(future.get_id())
+        print("Thread {}: Value Stored: {}".format(i, stored_values))
+    '''
+    a = simplesum.remote(5, 2)
+    b = simplesum.remote(1, a)
+    
+    print("Thread 2: Future Returned")
+
+    print("Thread 2: Do Other Work Here...")
+    
+    print("Thread 2: Value Returned:", a.get(), b.get())
+
+    stored_values = hive.store.get(b.get_id())
+    print("Thread 2: Value Stored:", stored_values)
+    
+        
+        
