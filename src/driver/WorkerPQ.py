@@ -6,14 +6,17 @@ from src.utils import serialization
 
 class WorkerPQ:
 
-    def __init__(self, serverAddresses):
-        self.servers = serverAddresses
+    def __init__(self, serverAddresses=None):
         self.loadPQ = []
         self.taskStubs = []
-        self.generateStubs()
+        self.servers = []
+
+        if serverAddresses is not None:
+            self.servers = serverAddresses
+            self.generateStubs()
     
     def addServer(self, server):
-        self.servers.add(server)
+        self.servers.append(server)
         self.createChannel(server)
         
 

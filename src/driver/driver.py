@@ -94,12 +94,14 @@ class Client(object):
         if len(requiredIds) != 0:
             self.sendObjects(requiredIds)
 
+    # This method sends workers associated with required objects 
     def sendObjects(self, requiredIds):
         objectLocs = {}
         for id in requiredIds:
-            objectLocs[id] = self.get(id[0])
+            if self.controlStore.contains(id):
+                objectLocs[id] = self.controlStore.get(id)[0]
+            else:
+                objectLocs[id] = None
         #self.stub.Execute(driverworker_pb2.TaskRequest(
         
-# Checking if reply has object IDs
-# send request with workerIDs
 

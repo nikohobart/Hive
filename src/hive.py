@@ -8,21 +8,23 @@ from src.driver.scheduler import SchedulingQueue
 class HiveCore:
     def __init__(self):
         self.store = ObjectStore()
+        self.scheduler=SchedulingQueue()
         
     def remote(self, server='localhost', server_port=8080):
         def outer(func):
-            return RemoteFunction(func, server, server_port, store=self.store)
+            return RemoteFunction(func, server, server_port, store=self.store, scheduler=self.scheduler)
 
         return outer
 
 class RemoteFunction:
-    def __init__(self, func, server='localhost', server_port=8080, store=None):
+    def __init__(self, func, server='localhost', server_port=8080, store=None, scheduler=None):
         self.func = func
         self.server = server
         self.server_port = server_port
 
         self.store=store
-        self.scheduler=SchedulingQueue(['{}:{}'.format(server, server_port)])
+        self.scheduler = scheduler
+        self.scheduler.workerPQ.addServer('{}:{}'.format(server, server_port))
 
         self.client = Client(self.server, self.server_port, self.scheduler)
 

@@ -63,7 +63,7 @@ class TaskQueue:
         return self.task_map[task_id]
 
 class SchedulingQueue:
-    def __init__(self, addresses):
+    def __init__(self, addresses=None):
         self.task_queues = TaskQueue()
         self.workerPQ = WorkerPQ(addresses)
         # self.blocked_task_ids = set()
