@@ -2,7 +2,7 @@ import uuid
 
 class Future:
     def __init__(self):
-        self.__object_id = uuid.uuid1()
+        self.__id = uuid.uuid1()
         self.__result = None
         self.__exception = None
 
@@ -13,7 +13,7 @@ class Future:
         self.__exception = exception
 
     def get_id(self):
-        return self.__object_id
+        return self.__id
     
     def get(self):
         while self.__result is None and self.__exception is None:

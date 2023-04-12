@@ -1,21 +1,26 @@
+import time
+
+from src.proto import workerworker_pb2 as workerworker_pb2
 from src.proto import workerworker_pb2_grpc
 from src.utils import serialization
-from src.proto import workerworker_pb2 as workerworker_pb2
 
 
 class WorkerWorkerService(workerworker_pb2_grpc.WorkerWorkerServiceServicer):
-    def __init__(self, object_store):
+    def __init__(self, object_store, address, port):
         self.object_store = object_store
+        self.address = address
+        self.port = port
 
     def GetObject(self, request, context):
-        print("WorkerWorkerService: GetObject RPC Called")
+        object_ids = serialization.deserialize(request.object_ids)
 
-        depickled_object_ids = serialization.deserialize(request.object_ids)
+        print(f"Worker {self.address}:{self.port}: GetObject RPC: Received object ids:", object_ids)
 
-        print("WorkerWorkerService: Received object ids:", depickled_object_ids)
+        while self.object_store.missing(*object_ids):
+            time.sleep(0.1)
 
-        object_vals = {id : self.object_store.get(id) for id in depickled_object_ids}
+        objects = self.object_store.get(*object_ids)
         
-        print("WorkerWorkerService: Returning objects:", object_vals)
+        print(f"Worker {self.address}:{self.port}: GetObject RPC: Sending objects:", objects)
 
-        return workerworker_pb2.ObjectReply(objects=serialization.serialize(object_vals))
+        return workerworker_pb2.ObjectReply(objects=serialization.serialize(objects))

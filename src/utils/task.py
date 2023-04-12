@@ -1,8 +1,9 @@
-import uuid
-
 class Task:
+    __id = 0
+
     def __init__(self, func, args, kwargs = None):
-        self.id = uuid.uuid1().int>>64
+        Task.__id += 1
+        self.id = Task.__id
         self.func = func
         self.args = args
         self.kwargs = kwargs

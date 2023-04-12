@@ -1,5 +1,5 @@
 # Hive
-A distributed computing framework loosely based on Ray and Dask.
+A distributed, task-parallel framework for Python applications
 
 ## Structure
 

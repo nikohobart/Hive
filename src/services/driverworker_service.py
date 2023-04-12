@@ -1,153 +1,144 @@
 import grpc
 import psutil
 import time
+from multiprocessing.pool import ThreadPool
 
+from src.proto import driverworker_pb2
 from src.proto import driverworker_pb2_grpc
 from src.proto import workerworker_pb2
 from src.proto import workerworker_pb2_grpc
 from src.utils import serialization
-from src.proto import driverworker_pb2
 from src.utils.future import Future
+from src.utils.missing import Missing
 
 class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
-    def __init__(self, object_store, loc):
+    def __init__(self, object_store, address, port):
         self.object_store = object_store
-        self.loc = loc
+        self.address = address
+        self.port = port
 
     def Execute(self, request, context):
-        print("DriverWorkerService: Execute RPC Called")
+        future_id = serialization.deserialize(request.future_id)
+        func = serialization.deserialize(request.function)
+        args = serialization.deserialize(request.args)
+        kwargs = serialization.deserialize(request.kwargs)
+        object_locs = serialization.deserialize(request.object_locs)
 
-        depickled_func = serialization.deserialize(request.function)
-        depickled_args = serialization.deserialize(request.args)
-        depickled_object_locs = serialization.deserialize(request.object_locs)
-        depickled_future = serialization.deserialize(request.future_id)
-
-        print(f"DriverWorkerService: Received task ({depickled_func.__name__}) with args ({depickled_args})")
-        
-        args = {}
-        missing_args = {}
-
-        # Create a dictionary of arguments : objects/object_ids
-        # Create a dictionary of missing arguments : object_ids
-        for arg in depickled_args:
+        object_ids = []
+        for arg in args:
             if isinstance(arg, Future):
-                if self.object_store.contains(arg.get_id()):
-                   args[arg] = self.object_store.get(arg)
-                else:
-                    args[arg] = arg.get_id()
-                    missing_args[arg] = arg.get_id()
+                object_ids.append(arg.get_id())
+
+        if kwargs:
+            for arg in kwargs.values():
+                if isinstance(arg, Future):
+                    object_ids.append(arg.get_id())
+
+        missing = self.object_store.missing(*object_ids)
+
+        # If there are no missing arguments, execute
+        if not missing:
+            print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
+
+            if kwargs:
+                result = func(*args, **kwargs)
             else:
-                args[arg] = arg
+                result = func(*args)
+            self.object_store.set(future_id, result)
 
-        # If object locations were returned, get the objects
-        if depickled_object_locs:
-            object_vals = self.get_objects(depickled_object_locs)
-            print("VALS: ", object_vals)
-            for arg, id in missing_args.items():
-                args[arg] = object_vals[id]
-            for object_id, objected in object_vals.items():
-                self.object_store.set(object_id, objected)
-            
-            # Execute and return
-            result = depickled_func(*list(args.values()))
-            self.object_store.set(depickled_future, result)
-            object_ids = {"missing": [], "current": list(self.object_store.keys())}
+            object_ret = {"missing" : missing, "current" : self.object_store.keys()}
 
-            print("DriverWorkerService: Returning result:", result)
-            return driverworker_pb2.TaskReply(task_id=request.task_id, result=serialization.serialize(result), object_ids=serialization.serialize(object_ids))
+            bin_result = serialization.serialize(result)
+            bin_object_ret = serialization.serialize(object_ret)
 
-        # If object locations were not returned and there are missing arguments, get the object locations
-        elif missing_args:
-            missing_arg_ids = list(missing_args.values())
-            object_ids = {"missing": missing_arg_ids, "current": list(self.object_store.keys())}
+            print(f"Worker {self.address}:{self.port}: Execute RPC: Sending result: {result}")
 
-            print("DriverWorkerService: Returning missing ids:", missing_arg_ids)
-            return driverworker_pb2.TaskReply(task_id=request.task_id, result=serialization.serialize("MissingArgument"), object_ids=serialization.serialize(object_ids))
+            return driverworker_pb2.TaskReply(task_id=request.task_id, result=bin_result, object_ids=bin_object_ret)
         
-        # If object locations were not returned and there are no missing arguments, execute and return
         else:
-            result = depickled_func(*list(args.values()))
-            self.object_store.set(depickled_future, result)
-            object_ids = {"missing": [], "current": list(self.object_store.keys())}
-            print("DriverWorkerService: Returning result:", result)
-            return driverworker_pb2.TaskReply(task_id=request.task_id, result=serialization.serialize(result), object_ids=serialization.serialize(object_ids))
+
+            # If there are missing arguments and no object locations, get object locations from the driver
+            if object_locs == 0:
+                print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
+
+                object_ret = {"missing" : missing, "current" : self.object_store.keys()}
+
+                bin_object_ret = serialization.serialize(object_ret)
+                bin_ret = serialization.serialize(Missing())
+
+                print(f"Worker {self.address}:{self.port}: Execute RPC: Sending missing objects: {missing}")
+                
+                return driverworker_pb2.TaskReply(task_id=request.task_id, result=bin_ret, object_ids=bin_object_ret)
+            
+            # If there are missing arguments and object locations, get objects from the workers
+            else:
+                print(f"Worker {self.address}:{self.port}: Execute RPC: Received object locations: {object_locs}")
+
+                objects = self.get_objects(object_locs)
+                for object_id, object in objects.items():
+                    self.object_store.set(object_id, object)
+
+                args = [objects[arg.get_id()] if isinstance(arg, Future) else arg for arg in args]
+                if kwargs:
+                    kwargs = {key : (objects[arg.get_id()] if isinstance(arg, Future) else arg) for (key, arg) in kwargs.items()}
+
+                if kwargs:
+                    result = func(*args, **kwargs)
+                else:
+                    result = func(*args)
+                self.object_store.set(future_id, result)
+
+                object_ret = {"missing" : [], "current" : self.object_store.keys()}
+
+                bin_result = serialization.serialize(result)
+                bin_object_ret = serialization.serialize(object_ret)
+
+                print(f"Worker {self.address}:{self.port}: Execute RPC: Sending result: {result}")
+
+                return driverworker_pb2.TaskReply(task_id=request.task_id, result=bin_result, object_ids=bin_object_ret)
     
     # Return CPU load and memory utilization
     def GetLoad(self, request, context):
-        #cpu_load = psutil.cpu_percent()
-        #memory_info = psutil.virtual_memory()
-        
-        #memory_used = (memory_info.used / memory_info.total) * 100
         cpu_percent = psutil.Process().cpu_percent()
         mem_percent = psutil.Process().memory_percent()
 
         return driverworker_pb2.LoadReply(cpu_load=serialization.serialize(cpu_percent), memory_used=serialization.serialize(mem_percent))
-    
+
     # Helper function to get objects from other workers
     def get_objects(self, object_locs):
-        # Dictionary of worker : [object_ids needed from worker]
+        # worker : [object_ids needed from worker]
         loc_objects = {}
 
-        # Dictionary of object_ids : objects
-        object_vals = {}
+        for object_id, locs in object_locs.items():
+            if locs[0] not in loc_objects:
+                loc_objects[locs[0]] = []
+            loc_objects[locs[0]].append(object_id)
 
-        print("SERVICE OBJECT LOCS: ", object_locs)
-        # Fill loc_objects dictionary
-        for object_id, loc in object_locs.items():
-            if loc[0] not in loc_objects:
-                loc_objects[loc[0]] = []
-            loc_objects[loc[0]].append(object_id)
+        objects = {}
+        with ThreadPool(len(loc_objects.keys())) as pool:
+            args = [(loc, object_ids, objects) for loc, object_ids in loc_objects.items()]
+            pool.starmap(self.get_objects_exec, args)
         
-        # Send RPC request from other workers
-        for loc, object_ids in loc_objects.items():
-            if loc == self.loc:
-                while True:
-                    #print(self.object_store.keys())
-                    if all([self.object_store.contains(id) for id in object_ids]):
-                        for id in object_ids:
-                            object_vals[id] = self.object_store.get(id)
-                        break
-                    time.sleep(0.1)
-            else:
-                print("LOCATION: ", loc)
-                # Create RPC Channel
-                #host, port = loc
-                channel = grpc.insecure_channel(loc)
-                stub = workerworker_pb2_grpc.WorkerWorkerServiceStub(channel)
+        return objects
+    
+    def get_objects_exec(self, loc, object_ids, objects):
+        if loc == f"{self.address}:{self.port}":
+            while self.object_store.missing(*object_ids):
+                time.sleep(0.1)
+            objects.update(self.object_store.get(*object_ids))
 
-                # Send RPC
-                bin_object_ids = serialization.serialize(object_ids)
-                bin_objects = stub.GetObject(workerworker_pb2.ObjectRequest(object_ids=bin_object_ids))
-                temp_object_vals = serialization.deserialize(bin_objects.objects)
+        else:
+            channel = grpc.insecure_channel(loc)
+            stub = workerworker_pb2_grpc.WorkerWorkerServiceStub(channel)
 
-                # Fill return dictionary
-                for object_id, object in temp_object_vals:
-                    object_vals[object_id] = object
+            bin_object_ids = serialization.serialize(object_ids)
+
+            print(f"Worker {self.address}:{self.port}: Execute RPC: Sending GetObject RPC to Worker {loc}: {object_ids}")
+
+            result = stub.GetObject(workerworker_pb2.ObjectRequest(object_ids=bin_object_ids))
+
+            print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {result}")
             
-        return object_vals
+            objects.update(serialization.deserialize(result.objects))
 
-
-    def get_execute_task(self, func: callable, args: list):
-        """Executes task on client's host
-
-        Args:
-            f (callable): function to be executed
-            args (list): arguments for function
-        """
-        print(f"Driver: Serializing task ({func.__name__}) and arguments ({args})")
-        bin_func = serialization.serialize(func)
-        bin_args = serialization.serialize(args)
-        
-        print(f"Driver: Sending task to worker ({self.host}:{self.server_port})")
-
-        response = self.stub.Execute(driverworker_pb2.TaskRequest(
-            task_id=(self.task_iter).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args
-        ))
-        self.task_iter += 1
-        
-        result = serialization.deserialize(response.result)
-        print("Driver: Result received:", result)
-
-        return result
-        
-
+        return

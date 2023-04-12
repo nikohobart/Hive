@@ -1,13 +1,6 @@
 from src.utils.task import Task
 from src.driver.WorkerPQ import WorkerPQ
 
-# class Task:
-#     def __init__(self, task_func, task_func_args):
-#         self.task_func = task_func
-#         self.task_func_args = task_func_args
-#         self.state = TaskState.PLACEABLE
-#         self.task_id = uuid.UUID()
-        
 class TaskState():
     PLACEABLE = 1
     WAITING = 2

@@ -2,6 +2,7 @@ import argparse
 import logging
 import signal
 import sys
+
 from concurrent import futures
 
 import grpc
@@ -13,12 +14,12 @@ from src.worker.object_store import ObjectStore
 
 
 class Server(object):
-    
+
     @property
     def instance(self):
         return self.__server
     
-    def __init__(self, address='localhost', port=8080, max_workers=10):
+    def __init__(self, address='localhost', port=5000, max_workers=10):
         self.__address = address
         self.__port = port
         self.__server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
@@ -27,23 +28,20 @@ class Server(object):
         self.__add_services()
         
     def serve(self):
-        endpoint = f'{self.__address}:{str(self.__port)}'
+        print(f"Server {self.__address}:{self.__port}: Starting")
 
-        print(f'Started server at {endpoint}')
-        print('Serving...')
-
+        endpoint = f"{self.__address}:{self.__port}"
         self.__server.add_insecure_port(endpoint)
         self.__server.start()
         self.__server.wait_for_termination()
 
     def stop(self):
-        print("Stopping server gracefully")
+        print(f"Server {self.__address}:{self.__port}: Stopping")
         self.__server.stop(3)        
 
     def __add_services(self):
-        s = '{}:{}'.format(self.__address, self.__port)
-        driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(self.__object_store, s), self.__server)
-        workerworker_pb2_grpc.add_WorkerWorkerServiceServicer_to_server(WorkerWorkerService(self.__object_store), self.__server)
+        driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(self.__object_store, self.__address, self.__port), self.__server)
+        workerworker_pb2_grpc.add_WorkerWorkerServiceServicer_to_server(WorkerWorkerService(self.__object_store, self.__address, self.__port), self.__server)
     
     
 def signalHandler(signal, frame):

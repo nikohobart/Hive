@@ -8,14 +8,20 @@ message TaskRequest {
     // Task ID
     bytes task_id = 1;
 
+    // Future ID
+    bytes future_id = 2;
+
     // Function
-    bytes function = 2;
+    bytes function = 3;
 
     // Args
-    bytes args = 3;
+    bytes args = 4;
+
+    // Keyword Arguments
+    bytes kwargs = 5;
 
     // Object IDs
-    bytes object_locs = 4;
+    bytes object_locs = 6;
 }
 
 message TaskReply {
@@ -25,7 +31,7 @@ message TaskReply {
     // Return Value
     bytes result = 3;
 
-    // Objects
+    // Object IDs {"missing" : [Missing Object IDs], "current" : [Current Object IDs]}
     // 2 lists, index 0: missing objects, index 1: current objects
     bytes object_ids = 2;
 }

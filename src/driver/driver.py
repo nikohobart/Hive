@@ -1,134 +1,96 @@
 import grpc
-import logging
-import uuid
-from src.driver.scheduler import SchedulingQueue
 import time
-import grpc
-from src.driver.WorkerPQ import WorkerPQ
+import uuid
+
 from src.proto import driverworker_pb2
 from src.proto import driverworker_pb2_grpc
-from src.proto import workerworker_pb2
-from src.proto import workerworker_pb2_grpc
-from src.utils import task
 from src.utils import serialization
-from src.driver.control_store import ControlStore
+from src.utils.missing import Missing
+from src.utils.task import Task
 
 class Client(object):
     """Client used for sending actor and task execution requests
     """
     
-    def __init__(self, server='localhost', server_port=50051, scheduler=None, controlStore=None):
-        # configure the host and the
-        # the port to which the client should connect to
-        self.server_port = server_port
-        self.controlStore = controlStore
+    def __init__(self, scheduler, control_store, server='localhost', server_port=8080):
         self.scheduler = scheduler
+        self.control_store = control_store
 
-        # Get worker with least load
-        self.workerAddr = self.scheduler.workerPQ.getServer()
-        #print("client Received: ", self.workerAddr)
-        if self.workerAddr is None:
-            s = '{}:{}'.format(server, self.server_port)
-            self.updateChannel(s)
+        self.server = server
+        self.server_port = server_port
+
+        self.worker = self.scheduler.workerPQ.getServer()
+
+        if self.worker is None:
+            self.channel = grpc.insecure_channel(f"{self.server}:{self.server_port}")
         else:
-            self.updateChannel(self.workerAddr)
+            self.channel = grpc.insecure_channel(self.worker)
+        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
 
-        # self task id generator 
-        #TODO: this should probably be moved to a different part of the architecture
-        #self.workerPQ = WorkerPQ(['{}:{}'.format(self.host, self.server_port)]) 
+    def get_worker(self):
+        return self.worker
 
-    def getWorker(self):
-        return self.workerAddr
-
-    def get_execute_task(self, func: callable, args: list, future_id=None):
+    def get_execute_task(self, future_id, func: callable, args: list, kwargs: dict):
         """Executes task on client's host
 
         Args:
             f (callable): function to be executed
             args (list): arguments for function
         """
+        
+        # Add new task to scheduler
+        new_task = Task(func, args, kwargs)
+        self.scheduler.addTask(new_task)
+        
+        # Get task from scheduler
+        cur_task = self.scheduler.getTask()
 
-        # Add task to scheduling queue
-        # TODO: how to get server addresses?
-        #response = self.scheduler.add_task(self.task_iter, bin_func, bin_args, self.task_iter, self.tasks_stub, [])
-        
-        # Add current task to waiting queue
-        newTask = task.Task(func, args)
-        self.scheduler.addTask(newTask)
-        
-        
-        # Get a FIFO task from scheduler
-        curTask = self.scheduler.getTask()
-        print('Serializing function ({}) and arguments ({})'.format(curTask.func.__name__, curTask.args))
-        bin_func = serialization.serialize(curTask.func)
-        bin_args = serialization.serialize(curTask.args)
+        bin_task_id = serialization.serialize(cur_task.id)
+        bin_future_id = serialization.serialize(future_id)
+        bin_func = serialization.serialize(cur_task.func)
+        bin_args = serialization.serialize(cur_task.args)
+        bin_kwargs = serialization.serialize(cur_task.kwargs)
         bin_locs = serialization.serialize(0)
-        self.futureIdserial =  serialization.serialize(future_id)
         
-        print("Sending function to worker ({})".format(self.workerAddr))
+        print(f"Driver {self.server}:{self.server_port}: Sending Execute RPC on Worker {self.worker}: {func.__name__, args, kwargs}")
 
         response = self.stub.Execute(driverworker_pb2.TaskRequest(
-            task_id=(curTask.id).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args, object_locs=bin_locs, future_id=self.futureIdserial
+            task_id=bin_task_id, future_id=bin_future_id, function=bin_func, args=bin_args, kwargs=bin_kwargs, object_locs=bin_locs
         ))
-        
         result = serialization.deserialize(response.result)
-        print("Client: Result received:", result)
+        object_ids = serialization.deserialize(response.object_ids)
 
-        # Updating ControlStore
-        if result == "MissingArgument":
-            return self.updateStore(response, bin_func, bin_args)
+        self.update_store(object_ids["current"])
+
+        if isinstance(result, Missing):
+            print(f"Driver {self.server}:{self.server_port}: Received missing objects from Worker {self.worker}: {object_ids['missing']}")
+
+            object_locs = self.get_locs(object_ids["missing"])
+            bin_locs = serialization.serialize(object_locs)
+
+            print(f"Driver {self.server}:{self.server_port}: Sending object locations to Worker {self.worker}: {object_locs}")
+
+            response2 = self.stub.Execute(driverworker_pb2.TaskRequest(
+                task_id=bin_task_id, future_id=bin_future_id, function=bin_func, args=bin_args, kwargs=bin_kwargs, object_locs=bin_locs
+            ))
+            result2 = serialization.deserialize(response2.result)
+
+            print(f"Driver {self.server}:{self.server_port}: Received result from Worker {self.worker}: {result2}")
+
+            return result2
         else:
+            print(f"Driver {self.server}:{self.server_port}: Received result from Worker {self.worker}: {result}")
+
             return result
 
-    
-    def updateChannel(self, server):
-         # instantiate a communication channel
-        self.channel = grpc.insecure_channel(server)
+    # Update global control store
+    def update_store(self, object_ids):
+        self.control_store.set(self.worker, *object_ids)
+        return
 
-        # bind the client to the task service server channel and
-        # the actor service server channel
-        self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
+    # Send object locations
+    def get_locs(self, object_ids):
+        while not self.control_store.contains(*object_ids):
+            time.sleep(0.1)
 
-    # This method is used to update ControlServer on basis of current objects stored by worker
-    # It also sends worker associated with required objects    
-    def updateStore(self, response, bin_func, bin_args):
-        objectIds = serialization.deserialize(response.object_ids)
-        requiredIds = objectIds["missing"]
-        currentIds = objectIds["current"]
-        print("CURRENTID: ", currentIds)
-        self.controlStore.set(self.workerAddr, currentIds)
-        if len(requiredIds) != 0:
-            print("ID: ", requiredIds)
-            return self.sendObjects(requiredIds, bin_func, bin_args)
-        else:
-            return None
-
-    # This method sends workers associated with required objects 
-    def sendObjects(self, requiredIds, bin_func, bin_args):
-        objectLocs = {}
-        
-        for id in requiredIds:
-            print("ID: ", id)
-            if self.controlStore.contains(id):
-                objectLocs[id] = self.controlStore.get([id])[0]
-            else:
-                start_time = time.time()
-                while True:
-                    if self.controlStore.contains(id):
-                         print("VALUE: ", self.controlStore.get([id])[0])
-                         objectLocs[id] = self.controlStore.get([id])[0]
-                         break
-                     
-                    elapsed_time = time.time() - start_time
-                    if elapsed_time >= 10:
-                            print("Timeout reached, didn't find")
-                            break
-                    time.sleep(0.1)
-                    
-        binObjects = serialization.serialize(objectLocs)
-        print("OBJECTS: ", objectLocs)
-        serialId = uuid.uuid1().int>>64
-        response = self.stub.Execute(driverworker_pb2.TaskRequest(task_id=(serialId).to_bytes(length=10, byteorder='little'), function=bin_func, args=bin_args, object_locs = binObjects,  future_id=self.futureIdserial))
-        result = serialization.deserialize(response.result)
-        print("TESTERRRRRRR: ", result)
-        return result
+        return self.control_store.get(*object_ids)

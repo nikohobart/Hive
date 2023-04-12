@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12\x64riverworker.proto\x12\x04hive\"f\n\x0bTaskRequest\x12\x0f\n\x07task_id\x18\x01 \x01(\x0c\x12\x10\n\x08\x66unction\x18\x02 \x01(\x0c\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\x0c\x12\x13\n\x0bobject_locs\x18\x04 \x01(\x0c\x12\x11\n\tfuture_id\x18\x05 \x01(\x0c\"@\n\tTaskReply\x12\x0f\n\x07task_id\x18\x01 \x01(\x0c\x12\x0e\n\x06result\x18\x03 \x01(\x0c\x12\x12\n\nobject_ids\x18\x02 \x01(\x0c\"\r\n\x0bLoadRequest\"2\n\tLoadReply\x12\x10\n\x08\x63pu_load\x18\x01 \x01(\x0c\x12\x13\n\x0bmemory_used\x18\x02 \x01(\x0c\x32s\n\x13\x44riverWorkerService\x12-\n\x07\x45xecute\x12\x11.hive.TaskRequest\x1a\x0f.hive.TaskReply\x12-\n\x07GetLoad\x12\x11.hive.LoadRequest\x1a\x0f.hive.LoadReplyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12\x64riverworker.proto\x12\x04hive\"v\n\x0bTaskRequest\x12\x0f\n\x07task_id\x18\x01 \x01(\x0c\x12\x11\n\tfuture_id\x18\x02 \x01(\x0c\x12\x10\n\x08\x66unction\x18\x03 \x01(\x0c\x12\x0c\n\x04\x61rgs\x18\x04 \x01(\x0c\x12\x0e\n\x06kwargs\x18\x05 \x01(\x0c\x12\x13\n\x0bobject_locs\x18\x06 \x01(\x0c\"@\n\tTaskReply\x12\x0f\n\x07task_id\x18\x01 \x01(\x0c\x12\x0e\n\x06result\x18\x03 \x01(\x0c\x12\x12\n\nobject_ids\x18\x02 \x01(\x0c\"\r\n\x0bLoadRequest\"2\n\tLoadReply\x12\x10\n\x08\x63pu_load\x18\x01 \x01(\x0c\x12\x13\n\x0bmemory_used\x18\x02 \x01(\x0c\x32s\n\x13\x44riverWorkerService\x12-\n\x07\x45xecute\x12\x11.hive.TaskRequest\x1a\x0f.hive.TaskReply\x12-\n\x07GetLoad\x12\x11.hive.LoadRequest\x1a\x0f.hive.LoadReplyb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'driverworker_pb2', globals())
@@ -21,13 +21,13 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _TASKREQUEST._serialized_start=28
-  _TASKREQUEST._serialized_end=130
-  _TASKREPLY._serialized_start=132
-  _TASKREPLY._serialized_end=196
-  _LOADREQUEST._serialized_start=198
-  _LOADREQUEST._serialized_end=211
-  _LOADREPLY._serialized_start=213
-  _LOADREPLY._serialized_end=263
-  _DRIVERWORKERSERVICE._serialized_start=265
-  _DRIVERWORKERSERVICE._serialized_end=380
+  _TASKREQUEST._serialized_end=146
+  _TASKREPLY._serialized_start=148
+  _TASKREPLY._serialized_end=212
+  _LOADREQUEST._serialized_start=214
+  _LOADREQUEST._serialized_end=227
+  _LOADREPLY._serialized_start=229
+  _LOADREPLY._serialized_end=279
+  _DRIVERWORKERSERVICE._serialized_start=281
+  _DRIVERWORKERSERVICE._serialized_end=396
 # @@protoc_insertion_point(module_scope)
