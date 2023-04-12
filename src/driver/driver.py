@@ -1,5 +1,6 @@
 import grpc
 import logging
+
 from src.driver.scheduler import SchedulingQueue
 
 import grpc
@@ -16,18 +17,25 @@ class Client(object):
     """Client used for sending actor and task execution requests
     """
     
-    def __init__(self, server='localhost', server_port=50051):
+    def __init__(self, server='localhost', server_port=50051, scheduler=None):
         # configure the host and the
         # the port to which the client should connect to
         self.server_port = server_port
         self.controlStore = ControlStore()
-        s = '{}:{}'.format(server, self.server_port)
-        self.updateChannel(s)
+        self.scheduler = scheduler
+
+        # Get worker with least load
+        self.workerAddr = self.scheduler.workerPQ.getServer()
+
+        if self.workerAddr is None:
+            s = '{}:{}'.format(server, self.server_port)
+            self.updateChannel(s)
+        else:
+            self.updateChannel(self.workerAddr)
 
         # self task id generator 
         #TODO: this should probably be moved to a different part of the architecture
-        self.scheduler = SchedulingQueue()
-        self.workerPQ = WorkerPQ(['{}:{}'.format(self.host, self.server_port)]) 
+        #self.workerPQ = WorkerPQ(['{}:{}'.format(self.host, self.server_port)]) 
 
 
     def get_execute_task(self, func: callable, args: list):
@@ -42,10 +50,6 @@ class Client(object):
         # TODO: how to get server addresses?
         #response = self.scheduler.add_task(self.task_iter, bin_func, bin_args, self.task_iter, self.tasks_stub, [])
         
-        # Get worker with least load
-        workerAddr = self.workerPQ.getServer(self.stub)
-        self.updateChannel(workerAddr)
-        
         # Add current task to waiting queue
         newTask = task.Task(func, args)
         self.scheduler.addTask(newTask)
@@ -56,7 +60,7 @@ class Client(object):
         bin_func = serialization.serialize(curTask.func)
         bin_args = serialization.serialize(curTask.args)
         
-        print("Sending function to worker ({}:{})".format(self.host, self.server_port))
+        print("Sending function to worker ({})".format(self.workerAddr))
 
 
         response = self.stub.Execute(driverworker_pb2.TaskRequest(
@@ -65,7 +69,9 @@ class Client(object):
         
         result = serialization.deserialize(response.result)
         print("Client: Result received:", response)
-        self.updateStore(workerAddr, result)
+
+        # Updating ControlStore
+        #self.updateStore(response)
         
         return result
 
@@ -77,18 +83,23 @@ class Client(object):
         # bind the client to the task service server channel and
         # the actor service server channel
         self.stub = driverworker_pb2_grpc.DriverWorkerServiceStub(self.channel)
-        
-    def updateStore(self, workerAddr, response):
+
+    # This method is used to update ControlServer on basis of current objects stored by worker
+    # It also sends worker associated with required objects    
+    def updateStore(self, response):
         objectIds = serialization.deserialize(response.object_ids)
         requiredIds = objectIds["missing"]
         currentIds = objectIds["current"]
-        self.controlStore.set(workerAddr, currentIds)
+        self.controlStore.set(self.workerAddr, currentIds)
         if len(requiredIds) != 0:
-            sendObjects(workerAddr, requiredIds)
+            self.sendObjects(requiredIds)
 
-    def sendObjects(self, workerAddr, requiredIds):
-    
-        
+    def sendObjects(self, requiredIds):
+        objectLocs = {}
+        for id in requiredIds:
+            objectLocs[id] = self.get(id[0])
+        #self.stub.Execute(driverworker_pb2.TaskRequest(
         
 # Checking if reply has object IDs
 # send request with workerIDs
+

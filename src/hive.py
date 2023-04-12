@@ -4,28 +4,27 @@ import threading
 from src.driver.driver import Client
 from src.utils.future import Future
 from src.worker.object_store import ObjectStore
-
+from src.driver.scheduler import SchedulingQueue
 class HiveCore:
     def __init__(self):
         self.store = ObjectStore()
-        self.scheduler = None
         
     def remote(self, server='localhost', server_port=8080):
         def outer(func):
-            return RemoteFunction(func, server, server_port, store=self.store, scheduler=self.scheduler)
+            return RemoteFunction(func, server, server_port, store=self.store)
 
         return outer
 
 class RemoteFunction:
-    def __init__(self, func, server='localhost', server_port=8080, store=None, scheduler=None):
+    def __init__(self, func, server='localhost', server_port=8080, store=None):
         self.func = func
         self.server = server
         self.server_port = server_port
 
         self.store=store
-        self.scheduler=scheduler
+        self.scheduler=SchedulingQueue(['{}:{}'.format(server, server_port)])
 
-        self.client = Client(self.server, self.server_port)
+        self.client = Client(self.server, self.server_port, self.scheduler)
 
     def exec(self, future, *args):
         ret = self.client.get_execute_task(self.func, args)

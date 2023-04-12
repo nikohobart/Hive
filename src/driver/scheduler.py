@@ -1,4 +1,5 @@
 from src.utils.task import Task
+from src.driver.WorkerPQ import WorkerPQ
 
 # class Task:
 #     def __init__(self, task_func, task_func_args):
@@ -62,9 +63,9 @@ class TaskQueue:
         return self.task_map[task_id]
 
 class SchedulingQueue:
-    def __init__(self):
+    def __init__(self, addresses):
         self.task_queues = TaskQueue()
-        
+        self.workerPQ = WorkerPQ(addresses)
         # self.blocked_task_ids = set()
         # self.driver_task_ids = set()
     
@@ -139,13 +140,14 @@ class SchedulingQueue:
     def remove_driver_task_id(self, task_id):
         self.driver_task_ids.discard(task_id)
 
+    
     # send task to a specific server
     # TODO How to send by a specifc server?
-    def sendTaskToServer(self, bin_func, bin_args, tasks_stub, serverAddr, taskiter):
-        response = tasks_stub.ExecuteTask(worker_pb2.ExecuteRequest(
-                task_id=int.to_bytes(taskiter), function=bin_func, args=bin_args
-            ))
-        return response
+    # def sendTaskToServer(self, bin_func, bin_args, tasks_stub, serverAddr, taskiter):
+    #    response = tasks_stub.ExecuteTask(worker_pb2.ExecuteRequest(
+    #            task_id=int.to_bytes(taskiter), function=bin_func, args=bin_args
+    #        ))
+    #    return response
         
     # send task to the server with the lowest load
     def PickServerAndTask(self, bin_func, bin_args, kwargs, tasks_stub, server_addresses):
@@ -163,9 +165,7 @@ class SchedulingQueue:
     #     bin_func = task.task_func
     #     bin_args = task.task_func_args
     #     self.task_queues.append_task(task, taskiter)
-        
-    #     response = self.PickServerAndSendTask(bin_func, bin_args, client_stub, server_addresses, taskiter)
-    
+    #     response = self.PickServerAndSendTask(bin_func, bin_args, client_stub, server_addresses, taskiter
     #     return response
     
     
