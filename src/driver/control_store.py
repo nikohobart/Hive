@@ -1,14 +1,14 @@
 
 class ControlStore:
     def __init__(self):
-        self._store = {}
+        self.__store = {}
 
     def get(self, *object_ids):
         worker_ids = []
         for object_id in object_ids:
-            if object_id not in self._store:
+            if object_id not in self.__store:
                 raise ValueError(f"Object {object_id} not found")
-            worker_ids.append(self._store.get(object_id))
+            worker_ids.append(self.__store.get(object_id))
         return worker_ids
 
     def set(self, worker_id, *object_ids):
@@ -17,13 +17,13 @@ class ControlStore:
 
     def remove(self, worker_id, *object_ids):
         for object_id in object_ids:
-            if object_id not in self._store:
+            if object_id not in self.__store:
                 raise ValueError(f"Object {object_id} not found")
             self._store[object_id].remove(worker_id)
 
     def contains(self, *object_ids):
         for object_id in object_ids:
-            if object_id not in self._store:
+            if object_id not in self.__store:
                 return False
         return True
 

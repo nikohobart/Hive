@@ -9,6 +9,7 @@ from src.proto import driverworker_pb2_grpc
 from src.proto import workerworker_pb2_grpc
 from src.services.driverworker_service import DriverWorkerService
 from src.services.workerworker_service import WorkerWorkerService
+from src.worker.object_store import ObjectStore
 
 
 class Server(object):
@@ -21,6 +22,9 @@ class Server(object):
         self.__address = address
         self.__port = port
         self.__server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
+        self.__object_store = ObjectStore()
+
+        self.__add_services()
         
     def serve(self):
         endpoint = f'{self.__address}:{str(self.__port)}'
@@ -36,10 +40,9 @@ class Server(object):
         print("Stopping server gracefully")
         self.__server.stop(3)        
 
-
-def add_services(server):
-    driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(), server)
-    workerworker_pb2_grpc.add_WorkerWorkerServiceServicer_to_server(WorkerWorkerService(), server)
+    def __add_services(self):
+        driverworker_pb2_grpc.add_DriverWorkerServiceServicer_to_server(DriverWorkerService(self.__object_store), self.__server)
+        workerworker_pb2_grpc.add_WorkerWorkerServiceServicer_to_server(WorkerWorkerService(self.__object_store), self.__server)
     
     
 def signalHandler(signal, frame):
@@ -57,6 +60,4 @@ if __name__ == '__main__':
 
     server = Server(port=args.port)
     signal.signal(signal.SIGINT, signalHandler)
-    
-    add_services(server.instance)
     server.serve()
