@@ -3,11 +3,11 @@ import time
 from src.hive import HiveCore
 
 if __name__ == '__main__':
-    workers = ["localhost:5000", "localhost:5001", "localhost:5002"]
+    workers = ["localhost:5000", "localhost:5001"]
 
     hive = HiveCore(workers)
     
-    @hive.remote(server='localhost', server_port=8080)
+    @hive.remote()
     def simple_sum(*args):
         time.sleep(1)
         sum = 0
@@ -15,7 +15,7 @@ if __name__ == '__main__':
             sum += arg
         return sum
     
-    @hive.remote(server='localhost', server_port=8081)
+    @hive.remote()
     def simple_mult(*args):
         time.sleep(5)
         prod = 1
@@ -23,7 +23,7 @@ if __name__ == '__main__':
             prod *= arg
         return prod
     
-    @hive.remote(server='localhost', server_port=8082)
+    @hive.remote()
     def simple_arithmetic(*args, **kwargs):
         if "op" in kwargs:
             if kwargs["op"] == "add":
@@ -92,6 +92,14 @@ if __name__ == '__main__':
             fibonacci.append(simple_sum.remote(fibonacci[i], fibonacci[i + 1]))
         print(fibonacci[21].get())
 
-    kwarg_future_test()
 
+    timeList = []
+    for i in range (0, 100):
+        start_time = time.time()
+        kwarg_future_test()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        timeList.append(elapsed_time)
+    # get mean of timeList)
+    print("average executing time is:", sum(timeList)/len(timeList))
     
