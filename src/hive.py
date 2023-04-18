@@ -10,7 +10,9 @@ class HiveCore:
     def __init__(self, workers):
         # Initialize global scheduler and global control store
         self.control_store = ControlStore()
-        self.scheduler = LocalityAwareScheduler(workers, self.control_store)
+        #self.scheduler = LocalityAwareScheduler(workers, self.control_store)
+        #self.scheduler = LoadBalancingScheduler(workers)
+        self.scheduler = RRScheduler(workers)
         
     def remote(self, server='localhost', server_port=8080):
         # Return wrapped function
