@@ -13,7 +13,6 @@ class ObjectStore():
         return ret
 
     def set(self, objects):
-        print(objects)
         for object_id, object in objects.items():
             self.__store[object_id] = object
 

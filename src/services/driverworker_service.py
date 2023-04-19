@@ -40,7 +40,7 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
 
         # If there are no missing arguments, execute
         if not missing:
-            print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
+            # print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
 
             result = self.execute(func, args, kwargs, object_ids)
             self.object_store.set({future_id : result})
@@ -49,7 +49,7 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
             bin_result = serialization.serialize(result)
             bin_object_ret = serialization.serialize(object_ret)
 
-            print(f"Worker {self.address}:{self.port}: Execute RPC: Sending result: {result}")
+            # print(f"Worker {self.address}:{self.port}: Execute RPC: Sending result: {result}")
 
             return driverworker_pb2.TaskReply(task_id=request.task_id, result=bin_result, object_ids=bin_object_ret)
         
@@ -57,20 +57,20 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
 
             # If there are missing arguments and no object locations, get object locations from the driver
             if object_locs == 0:
-                print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
+                # print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
 
                 object_ret = {"missing" : missing, "current" : self.object_store.keys()}
 
                 bin_object_ret = serialization.serialize(object_ret)
                 bin_ret = serialization.serialize(Missing())
 
-                print(f"Worker {self.address}:{self.port}: Execute RPC: Sending missing objects: {missing}")
+                # print(f"Worker {self.address}:{self.port}: Execute RPC: Sending missing objects: {missing}")
                 
                 return driverworker_pb2.TaskReply(task_id=request.task_id, result=bin_ret, object_ids=bin_object_ret)
             
             # If there are missing arguments and object locations, get objects from the workers
             else:
-                print(f"Worker {self.address}:{self.port}: Execute RPC: Received object locations: {object_locs}")
+                # print(f"Worker {self.address}:{self.port}: Execute RPC: Received object locations: {object_locs}")
 
                 self.get_objects(object_locs)
 
@@ -81,7 +81,7 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
                 bin_result = serialization.serialize(result)
                 bin_object_ret = serialization.serialize(object_ret)
 
-                print(f"Worker {self.address}:{self.port}: Execute RPC: Sending result: {result}")
+                # print(f"Worker {self.address}:{self.port}: Execute RPC: Sending result: {result}")
 
                 return driverworker_pb2.TaskReply(task_id=request.task_id, result=bin_result, object_ids=bin_object_ret)
     
@@ -115,14 +115,14 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
 
         bin_object_ids = serialization.serialize(object_ids)
 
-        print(f"Worker {self.address}:{self.port}: Execute RPC: Sending GetObject RPC to Worker {loc}: {object_ids}")
+        # print(f"Worker {self.address}:{self.port}: Execute RPC: Sending GetObject RPC to Worker {loc}: {object_ids}")
 
         result = stub.GetObject(workerworker_pb2.ObjectRequest(object_ids=bin_object_ids))
         objects = serialization.deserialize(result.objects)
 
         self.object_store.set(objects)
 
-        print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {objects}")
+        # print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {objects}")
 
         return
     

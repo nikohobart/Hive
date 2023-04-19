@@ -44,7 +44,7 @@ class Client(object):
         bin_kwargs = serialization.serialize(task.kwargs)
         bin_locs = serialization.serialize(0)
         
-        print(f"Driver {self.server}:{self.server_port}: Sending Execute RPC on Worker {worker}: {func.__name__, args, kwargs}")
+        # print(f"Driver {self.server}:{self.server_port}: Sending Execute RPC on Worker {worker}: {func.__name__, args, kwargs}")
 
         response = stub.Execute(driverworker_pb2.TaskRequest(
             task_id=bin_task_id, future_id=bin_future_id, function=bin_func, args=bin_args, kwargs=bin_kwargs, object_locs=bin_locs
@@ -55,12 +55,12 @@ class Client(object):
         self.control_store.set(worker, *object_ids["current"])
 
         if isinstance(result, Missing):
-            print(f"Driver {self.server}:{self.server_port}: Received missing objects from Worker {worker}: {object_ids['missing']}")
+            # print(f"Driver {self.server}:{self.server_port}: Received missing objects from Worker {worker}: {object_ids['missing']}")
 
             object_locs = self.get_locs(object_ids["missing"])
             bin_locs = serialization.serialize(object_locs)
 
-            print(f"Driver {self.server}:{self.server_port}: Sending object locations to Worker {worker}: {object_locs}")
+            # print(f"Driver {self.server}:{self.server_port}: Sending object locations to Worker {worker}: {object_locs}")
 
             response2 = stub.Execute(driverworker_pb2.TaskRequest(
                 task_id=bin_task_id, future_id=bin_future_id, function=bin_func, args=bin_args, kwargs=bin_kwargs, object_locs=bin_locs
@@ -69,11 +69,11 @@ class Client(object):
             
             self.control_store.set(worker, *object_ids["missing"])
 
-            print(f"Driver {self.server}:{self.server_port}: Received result from Worker {worker}: {result2}")
+            # print(f"Driver {self.server}:{self.server_port}: Received result from Worker {worker}: {result2}")
 
             return result2
         else:
-            print(f"Driver {self.server}:{self.server_port}: Received result from Worker {worker}: {result}")
+            # print(f"Driver {self.server}:{self.server_port}: Received result from Worker {worker}: {result}")
 
             return result
 
