@@ -36,8 +36,13 @@ class Client(object):
         # Add new task to scheduler
         new_task = Task(func, args, kwargs)
         self.scheduler.add_task(new_task)
-
+        start_time = time.time()
         self.task, self.worker = self.scheduler.get_task()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        with open('loadBResult.txt', 'a') as file:
+        # Write some data to the file
+            file.write(str(elapsed_time)+'\n')
         self.control_store.set(self.worker, future_id)
 
         print(self.task, self.worker)

@@ -93,13 +93,23 @@ if __name__ == '__main__':
         print(fibonacci[21].get())
 
 
+
     timeList = []
     for i in range (0, 100):
-        start_time = time.time()
         kwarg_future_test()
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        timeList.append(elapsed_time)
     # get mean of timeList)
-    print("average executing time is:", sum(timeList)/len(timeList))
-    
+    # Open the file in 'read' mode ('r') and create a file object
+    with open('loadBResult.txt', 'r') as file:
+        # Read the content of the file
+        content = file.read()
+
+        # Split the content into individual numbers
+        numbers_str = content.split()
+
+        # Convert the numbers to floats
+        numbers = [float(num) for num in numbers_str]
+
+    # Calculate the mean
+    mean = sum(numbers) / len(numbers)
+    # Print the mean
+    print("Mean:", mean)
