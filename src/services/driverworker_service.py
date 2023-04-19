@@ -24,6 +24,8 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
         kwargs = serialization.deserialize(request.kwargs)
         object_locs = serialization.deserialize(request.object_locs)
 
+        self.object_store.set({future_id : None})
+
         object_ids = []
         for arg in args:
             if isinstance(arg, Future):
@@ -40,14 +42,10 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
         if not missing:
             print(f"Worker {self.address}:{self.port}: Execute RPC: Received function and arguments: {func.__name__, args, kwargs}")
 
-            if kwargs:
-                result = func(*args, **kwargs)
-            else:
-                result = func(*args)
-            self.object_store.set(future_id, result)
+            result = self.execute(func, args, kwargs, object_ids)
+            self.object_store.set({future_id : result})
 
-            object_ret = {"missing" : missing, "current" : self.object_store.keys()}
-
+            object_ret = {"missing" : [], "current" : self.object_store.keys()}
             bin_result = serialization.serialize(result)
             bin_object_ret = serialization.serialize(object_ret)
 
@@ -74,22 +72,12 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
             else:
                 print(f"Worker {self.address}:{self.port}: Execute RPC: Received object locations: {object_locs}")
 
-                objects = self.get_objects(object_locs)
-                for object_id, object in objects.items():
-                    self.object_store.set(object_id, object)
+                self.get_objects(object_locs)
 
-                args = [objects[arg.get_id()] if isinstance(arg, Future) else arg for arg in args]
-                if kwargs:
-                    kwargs = {key : (objects[arg.get_id()] if isinstance(arg, Future) else arg) for (key, arg) in kwargs.items()}
-
-                if kwargs:
-                    result = func(*args, **kwargs)
-                else:
-                    result = func(*args)
-                self.object_store.set(future_id, result)
+                result = self.execute(func, args, kwargs, object_ids)
+                self.object_store.set({future_id : result})
 
                 object_ret = {"missing" : [], "current" : self.object_store.keys()}
-
                 bin_result = serialization.serialize(result)
                 bin_object_ret = serialization.serialize(object_ret)
 
@@ -110,36 +98,47 @@ class DriverWorkerService(driverworker_pb2_grpc.DriverWorkerServiceServicer):
         loc_objects = {}
 
         for object_id, locs in object_locs.items():
-            if locs[0] not in loc_objects:
-                loc_objects[locs[0]] = []
-            loc_objects[locs[0]].append(object_id)
+            if locs[0] != f"{self.address}:{self.port}":
+                if locs[0] not in loc_objects:
+                    loc_objects[locs[0]] = []
+                loc_objects[locs[0]].append(object_id)
 
-        objects = {}
         with ThreadPool(len(loc_objects.keys())) as pool:
-            args = [(loc, object_ids, objects) for loc, object_ids in loc_objects.items()]
+            args = [(loc, object_ids) for loc, object_ids in loc_objects.items()]
             pool.starmap(self.get_objects_exec, args)
         
-        return objects
+        return
     
-    def get_objects_exec(self, loc, object_ids, objects):
-        if loc == f"{self.address}:{self.port}":
-            while self.object_store.missing(*object_ids):
-                time.sleep(0.1)
-            objects.update(self.object_store.get(*object_ids))
+    def get_objects_exec(self, loc, object_ids):
+        channel = grpc.insecure_channel(loc)
+        stub = workerworker_pb2_grpc.WorkerWorkerServiceStub(channel)
 
-        else:
-            channel = grpc.insecure_channel(loc)
-            stub = workerworker_pb2_grpc.WorkerWorkerServiceStub(channel)
+        bin_object_ids = serialization.serialize(object_ids)
 
-            bin_object_ids = serialization.serialize(object_ids)
+        print(f"Worker {self.address}:{self.port}: Execute RPC: Sending GetObject RPC to Worker {loc}: {object_ids}")
 
-            print(f"Worker {self.address}:{self.port}: Execute RPC: Sending GetObject RPC to Worker {loc}: {object_ids}")
+        result = stub.GetObject(workerworker_pb2.ObjectRequest(object_ids=bin_object_ids))
+        objects = serialization.deserialize(result.objects)
 
-            result = stub.GetObject(workerworker_pb2.ObjectRequest(object_ids=bin_object_ids))
-            depickled_objects = serialization.deserialize(result.objects)
+        self.object_store.set(objects)
 
-            print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {depickled_objects}")
-            
-            objects.update(depickled_objects)
+        print(f"Worker {self.address}:{self.port}: Execute RPC: Received objects from Worker {loc}: {objects}")
 
         return
+    
+    def execute(self, func, args, kwargs, object_ids):
+        while self.object_store.missing(*object_ids) or self.object_store.none(*object_ids):
+            time.sleep(0.1)
+
+        objects = self.object_store.get(*object_ids)
+
+        args = [objects[arg.get_id()] if isinstance(arg, Future) else arg for arg in args]
+        if kwargs:
+            kwargs = {key : (objects[arg.get_id()] if isinstance(arg, Future) else arg) for (key, arg) in kwargs.items()}
+            result = func(*args, **kwargs)
+        else:
+            result = func(*args)
+
+        return result
+
+        

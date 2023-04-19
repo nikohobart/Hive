@@ -5,7 +5,7 @@ from src.hive import HiveCore
 if __name__ == '__main__':
     workers = ["localhost:5000", "localhost:5001", "localhost:5002"]
 
-    hive = HiveCore(workers)
+    hive = HiveCore("Round Robin", workers)
     
     @hive.remote(server='localhost', server_port=8080)
     def simple_sum(*args):
@@ -87,11 +87,12 @@ if __name__ == '__main__':
 
 
     def simple_fibonnaci():
+        n = 20
         fibonacci = [1, 1]
-        for i in range(20):
+        for i in range(n):
             fibonacci.append(simple_sum.remote(fibonacci[i], fibonacci[i + 1]))
-        print(fibonacci[21].get())
 
-    kwarg_future_test()
+        print(fibonacci[n + 1].get())
 
-    
+    simple_fibonnaci()
+
