@@ -7,12 +7,16 @@ from src.driver.scheduler import RRScheduler, LoadBalancingScheduler, LocalityAw
 from src.utils.future import Future
 
 class HiveCore:
-    def __init__(self, workers):
+    def __init__(self, scheduler, workers):
         # Initialize global scheduler and global control store
         self.control_store = ControlStore()
-        #self.scheduler = LocalityAwareScheduler(workers, self.control_store)
-        #self.scheduler = LoadBalancingScheduler(workers)
-        self.scheduler = RRScheduler(workers)
+
+        if scheduler == "Round Robin":
+            self.scheduler = RRScheduler(workers)
+        elif scheduler == "Load Balancing":
+            self.scheduler = LoadBalancingScheduler(workers)
+        elif scheduler == "Locality Aware":
+            self.scheduler = LocalityAwareScheduler(workers, self.control_store)
         
     def remote(self, server='localhost', server_port=8080):
         # Return wrapped function

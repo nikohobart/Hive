@@ -16,7 +16,7 @@ class WorkerWorkerService(workerworker_pb2_grpc.WorkerWorkerServiceServicer):
 
         print(f"Worker {self.address}:{self.port}: GetObject RPC: Received object ids:", object_ids)
 
-        while self.object_store.missing(*object_ids):
+        while self.object_store.missing(*object_ids) or self.object_store.none(*object_ids):
             time.sleep(0.1)
 
         objects = self.object_store.get(*object_ids)
