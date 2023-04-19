@@ -3,7 +3,7 @@ import time
 from src.hive import HiveCore
 
 if __name__ == '__main__':
-    workers = ["localhost:5000", "localhost:5001", "localhost:5002"]
+    workers = ["localhost:5000", "localhost:5001"]
 
     hive = HiveCore("Round Robin", workers)
     
